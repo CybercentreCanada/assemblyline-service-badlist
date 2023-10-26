@@ -1,0 +1,62 @@
+name: Badlist
+version: $SERVICE_TAG
+description: >
+  ALv4 Badlist service
+
+  This service will check the file hashes against Assemblyline's internal badlist infrastructure and mark
+  files as bad accordingly.
+
+accepts: .*
+rejects: empty|metadata/.*
+
+stage: REVIEW
+category: Static Analysis
+
+uses_tags: true
+file_required: false
+timeout: 10
+disable_cache: false
+
+enabled: true
+
+config:
+  cache_timeout_seconds: 1800
+  lookup_md5: false
+  lookup_sha1: false
+  lookup_sha256: true
+# Maybe this could be a future update we do to the badlist?
+#  lookup_ssdeep: false
+#  lookup_tlsh: false
+
+docker_config:
+  image: ${REGISTRY}cccs/assemblyline-service-badlist:$SERVICE_TAG
+  cpu_cores: 0.4
+  ram_mb: 256
+
+heuristics:
+  - heur_id: 1
+    name: Badlisted file by external source
+    score: 1000
+    filetype: "*"
+    description: This file is found in an external source of know bad files
+  - heur_id: 2
+    name: Badlisted file by user
+    score: 1000
+    filetype: "*"
+    description: A user of this system found this file to be bad
+  - heur_id: 3
+    name: Badlisted IOC by external source
+    score: 1000
+    filetype: "*"
+    description: This Indicator Of Compromise is found in an external source of know bad IOCs
+  - heur_id: 4
+    name: Badlisted IOC by user
+    score: 1000
+    filetype: "*"
+    description: A user of this system found this IOC to be bad
+# Heuristic related to a future update
+#  - heur_id: 5
+#    name: Badlisted similar file
+#    score: 500
+#    filetype: "*"
+#    description: A file with a similar locally sensitive hash was mark as malicious, this file may be as well
