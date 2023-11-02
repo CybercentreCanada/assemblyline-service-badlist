@@ -55,6 +55,13 @@ class Badlist(ServiceBase):
                     heuristic=Heuristic(1),
                     classification=data.get('classification', classification.UNRESTRICTED))
 
+                # Add attribution tags
+                attributions = data.get('attribution', {}) or {}
+                for tag_type, values in attributions.items():
+                    if values:
+                        for v in values:
+                            bad_file_section.add_tag(f"attribution.{tag_type}", v)
+
                 # Create a sub-section per source
                 for source in data['sources']:
                     if source['type'] == 'user':
@@ -80,6 +87,13 @@ class Badlist(ServiceBase):
                     heuristic=Heuristic(2),
                     classification=badlisted.get('classification', classification.UNRESTRICTED),
                     tags={badlisted['tag']['type']: [badlisted['tag']['value']]})
+
+                # Add attribution tags
+                attributions = badlisted.get('attribution', {}) or {}
+                for tag_type, values in attributions.items():
+                    if values:
+                        for v in values:
+                            bad_ioc_section.add_tag(f"attribution.{tag_type}", v)
 
                 # Create a sub-section per source
                 for source in badlisted['sources']:
@@ -115,6 +129,13 @@ class Badlist(ServiceBase):
                     similar_section.add_item("tlsh", similar['hashes'].get('tlsh', None))
                     similar_section.add_item("size", similar['file'].get('size', None))
                     similar_section.add_item("type", similar['file'].get('type', None))
+
+                    # Add attribution tags
+                    attributions = similar.get('attribution', {}) or {}
+                    for tag_type, values in attributions.items():
+                        if values:
+                            for v in values:
+                                similar_section.add_tag(f"attribution.{tag_type}", v)
 
                     # Create a sub-section per source
                     for source in similar['sources']:
