@@ -24,9 +24,8 @@ config:
   lookup_md5: false
   lookup_sha1: false
   lookup_sha256: true
-# Maybe this could be a future update we do to the badlist?
-#  lookup_ssdeep: false
-#  lookup_tlsh: false
+  lookup_ssdeep: false
+  lookup_tlsh: true
 
 docker_config:
   image: ${REGISTRY}cccs/assemblyline-service-badlist:$SERVICE_TAG
@@ -35,28 +34,17 @@ docker_config:
 
 heuristics:
   - heur_id: 1
-    name: Badlisted file by external source
+    name: Badlisted File
     score: 1000
     filetype: "*"
-    description: This file is found in an external source of know bad files
+    description: This file is found in the list of know bad files
   - heur_id: 2
-    name: Badlisted file by user
+    name: Badlisted IOC
     score: 1000
     filetype: "*"
-    description: A user of this system found this file to be bad
+    description: This Indicator Of Compromise is found in the list of know bad IOCs
   - heur_id: 3
-    name: Badlisted IOC by external source
-    score: 1000
+    name: Badlisted Similar File
+    score: 500
     filetype: "*"
-    description: This Indicator Of Compromise is found in an external source of know bad IOCs
-  - heur_id: 4
-    name: Badlisted IOC by user
-    score: 1000
-    filetype: "*"
-    description: A user of this system found this IOC to be bad
-# Heuristic related to a future update
-#  - heur_id: 5
-#    name: Badlisted similar file
-#    score: 500
-#    filetype: "*"
-#    description: A file with a similar locally sensitive hash was mark as malicious, this file may be as well
+    description: This file is similar to a file found in the list of know bad files
