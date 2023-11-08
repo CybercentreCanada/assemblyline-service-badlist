@@ -1,6 +1,7 @@
 
 from assemblyline.common import forge
 from assemblyline.common.isotime import epoch_to_iso, now
+from assemblyline.common.net import is_valid_ip
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.result import Heuristic, Result,  ResultOrderedKeyValueSection, ResultSection
 
@@ -76,6 +77,24 @@ class Badlist(ServiceBase):
 
                 # Add the bad file section to the results
                 result.add_section(bad_file_section)
+
+        # Add the uri file type data as potential tags to check
+        tags = request.task.tags
+        if request.file_type.startswith("uri/") and request.task.fileinfo.uri_info:
+            tags.setdefault('network.static.uri', [])
+            tags.setdefault('network.dynamic.uri', [])
+            tags['network.static.uri'].append(request.task.fileinfo.uri_info.uri)
+            tags['network.dynamic.uri'].append(request.task.fileinfo.uri_info.uri)
+
+            if is_valid_ip(request.task.fileinfo.uri_info.hostname):
+                net_type = "ip"
+            else:
+                net_type = "domain"
+
+            tags.setdefault(f'network.static.{net_type}', [])
+            tags.setdefault(f'network.dynamic.{net_type}', [])
+            tags[f'network.static.{net_type}'].append(request.task.fileinfo.uri_info.hostname)
+            tags[f'network.dynamic.{net_type}'].append(request.task.fileinfo.uri_info.hostname)
 
         # Check the list of tags as a batch
         badlisted_tags = self.api_interface.lookup_badlist_tags(request.task.tags)
