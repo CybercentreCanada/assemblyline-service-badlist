@@ -121,10 +121,10 @@ class BadlistUpdateServer(ServiceUpdater):
             # See if there's any attribution details we can add to the item before adding to the list
             attr = {}
             if malware_family:
-                attr["family"] = malware_family
+                attr["family"] = list(set(malware_family))
 
             if attribution:
-                attr["actor"] = attribution
+                attr["actor"] = list(set(attribution))
 
             if attr:
                 badlist_item["attribution"] = attr
