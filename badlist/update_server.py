@@ -64,7 +64,10 @@ class BadlistUpdateServer(ServiceUpdater):
                 if self._service.config["updater"][_s.name]["type"] == "blocklist"
             ]
         )
-        missing_blocklists = blocklist_sources - set(os.listdir(self._update_dir))
+
+        missing_blocklists = {
+            s for s in blocklist_sources if self.datastore.badlist.search(f"sources.name:{s}", rows=0)["total"] == 0
+        }
 
         if missing_blocklists != blocklist_sources:
             # We have at least one blocklist source to work with for the time being
