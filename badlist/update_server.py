@@ -1,22 +1,36 @@
 import csv
 import json
-import os
 import re
+from copy import deepcopy
 from typing import List, Set
 
-from assemblyline.odm.base import DOMAIN_ONLY_REGEX, FULL_URI, IP_ONLY_REGEX
-from assemblyline.odm.models.badlist import Badlist as BadlistItem
+from assemblyline.odm.base import (
+    DOMAIN_ONLY_REGEX,
+    FULL_URI,
+    IP_ONLY_REGEX,
+    MD5_REGEX,
+    SHA1_REGEX,
+    SHA256_REGEX,
+    SSDEEP_REGEX,
+    TLSH_REGEX,
+)
 from assemblyline_v4_service.updater.updater import ServiceUpdater
 
 IOC_CHECK = {
     "ip": re.compile(IP_ONLY_REGEX).match,
     "domain": re.compile(DOMAIN_ONLY_REGEX).match,
     "uri": re.compile(FULL_URI).match,
+    "sha256": re.compile(SHA256_REGEX).match,
+    "sha1": re.compile(SHA1_REGEX).match,
+    "md5": re.compile(MD5_REGEX).match,
+    "ssdeep": re.compile(SSDEEP_REGEX).match,
+    "tlsh": re.compile(TLSH_REGEX).match,
     "malware_family": lambda x: True,
 }
 
 
 NETWORK_IOC_TYPES = ["ip", "domain", "uri"]
+FILEHASH_TYPES = ["sha256", "sha1", "md5", "ssdeep", "tlsh"]
 
 
 class SetEncoder(json.JSONEncoder):
@@ -31,6 +45,9 @@ class BadlistUpdateServer(ServiceUpdater):
         super().__init__(*args, **kwargs)
         self.malware_families: Set[str] = set()
         self.attributions: Set[str] = set()
+
+    def do_local_update(self):
+        ...
 
     # A sanity check to make sure we do in fact have things to send to services
     def _inventory_check(self) -> bool:
@@ -85,7 +102,7 @@ class BadlistUpdateServer(ServiceUpdater):
 
             # Normalize data (parsing based off Malpedia API output)
             data = data.split(".", 1)[-1]
-            data = data.replace("-", "").replace("_", "").replace("#", "").replace('"', "").lower()
+            data = data.replace("-", "").replace("_", "").replace("#", "").replace('"', "").upper()
             data = data.split(",") if "," in data else [data]
 
             if not validate:
@@ -97,17 +114,33 @@ class BadlistUpdateServer(ServiceUpdater):
                 return [d for d in data if d in self.attributions]
 
         def update_blocklist(
-            ioc_type: str, ioc_value: str, malware_family: List[str], attribution: List[str], references: List[str]
+            ioc_type: str,
+            ioc_value: str,
+            malware_family: List[str],
+            attribution: List[str],
+            references: List[str],
+            bl_type: str,
         ):
+            def prepare_item(bl_item):
+                # See if there's any attribution details we can add to the item before adding to the list
+                attr = source_cfg.get("default_attribution", {})
+                if malware_family:
+                    attr["family"] = list(set(malware_family))
+
+                if attribution:
+                    attr["actor"] = list(set(attribution))
+
+                bl_item["attribution"] = attr
+
             references = [r for r in references if re.match(FULL_URI, r)]
+            badlist_items = []
 
             # Normalize IOC values for when performing lookups
             ioc_value = ioc_value.lower()
 
             # Build item for badlist
-            badlist_item = {
-                "type": "tag",
-                "tag": {"type": f"network.static.{ioc_type}", "value": ioc_value},
+            badlist_item_base = {
+                "classification": default_classification,
                 "sources": [
                     {
                         "classification": default_classification,
@@ -118,18 +151,31 @@ class BadlistUpdateServer(ServiceUpdater):
                 ],
             }
 
-            # See if there's any attribution details we can add to the item before adding to the list
-            attr = {}
-            if malware_family:
-                attr["family"] = list(set(malware_family))
+            if bl_type == "tag":
+                if ioc_type in NETWORK_IOC_TYPES:
+                    # Tag applies to both static and dynamic
+                    for network_type in ["static", "dynamic"]:
+                        badlist_item = deepcopy(badlist_item_base)
+                        badlist_item.update(
+                            {
+                                "type": "tag",
+                                "tag": {"type": f"network.{network_type}.{ioc_type}", "value": ioc_value},
+                            }
+                        )
+                        badlist_items.append(badlist_item)
+            elif bl_type == "file":
+                # Set hash information
+                badlist_item = deepcopy(badlist_item_base)
+                badlist_item.update(
+                    {
+                        "type": "file",
+                        "hashes": {ioc_type: ioc_value},
+                    }
+                )
+                badlist_items.append(badlist_item)
 
-            if attribution:
-                attr["actor"] = list(set(attribution))
-
-            if attr:
-                badlist_item["attribution"] = attr
-
-            al_client.badlist.add_update(badlist_item)
+            [prepare_item(bl_item) for bl_item in badlist_items]
+            al_client.badlist.add_update_many(badlist_items)
 
         source_cfg = self._service.config["updater"][source_name]
 
@@ -141,6 +187,9 @@ class BadlistUpdateServer(ServiceUpdater):
                 for file, _ in files_sha256:
                     with open(file, "r") as fp:
                         for row in list(csv.reader(fp, delimiter=","))[start_index:]:
+                            if not row:
+                                # If no data in row, skip
+                                continue
                             row = [r.strip(' "') for r in row]
                             joined_row = ",".join(row)
                             if any(t in joined_row for t in ignore_terms) or joined_row.startswith("#"):
@@ -163,7 +212,7 @@ class BadlistUpdateServer(ServiceUpdater):
                             )
 
                             # Iterate over all IOC types
-                            for ioc_type in NETWORK_IOC_TYPES:
+                            for ioc_type in NETWORK_IOC_TYPES + FILEHASH_TYPES:
                                 if source_cfg.get(ioc_type) is None:
                                     continue
                                 ioc_value = row[source_cfg[ioc_type]]
@@ -175,7 +224,14 @@ class BadlistUpdateServer(ServiceUpdater):
                                 # If there are multiple IOC types in the same column, verify the IOC type
                                 if not IOC_CHECK[ioc_type](ioc_value):
                                     continue
-                                update_blocklist(ioc_type, ioc_value, malware_family, attribution, references)
+                                update_blocklist(
+                                    ioc_type,
+                                    ioc_value,
+                                    malware_family,
+                                    attribution,
+                                    references,
+                                    bl_type="tag" if ioc_type in NETWORK_IOC_TYPES else "file",
+                                )
 
             elif source_cfg["format"] == "json":
                 for file, _ in files_sha256:
@@ -197,10 +253,17 @@ class BadlistUpdateServer(ServiceUpdater):
                                 # Get attribution
                                 attribution = sanitize_data(data.get(source_cfg.get("attribution")), type="attribution")
 
-                                for ioc_type in NETWORK_IOC_TYPES:
+                                for ioc_type in NETWORK_IOC_TYPES + FILEHASH_TYPES:
                                     ioc_value = data.get(source_cfg.get(ioc_type))
                                     if ioc_value:
-                                        update_blocklist(ioc_type, ioc_value, malware_family, attribution, references)
+                                        update_blocklist(
+                                            ioc_type,
+                                            ioc_value,
+                                            malware_family,
+                                            attribution,
+                                            references,
+                                            bl_type="tag" if ioc_type in NETWORK_IOC_TYPES else "file",
+                                        )
 
         elif source_cfg["type"] == "malware_family_list":
             # This source is meant to contributes to the list of valid malware families
