@@ -1,6 +1,6 @@
 {
     "editor.codeActionsOnSave": {
-        "source.organizeImports": true,
+        "source.organizeImports": true
     },
     "editor.formatOnSave": true,
     "editor.rulers": [
@@ -8,31 +8,29 @@
     ],
     "editor.tabSize": 4,
     "editor.wordWrap": "wordWrapColumn",
-    "editor.wordWrapColumn": 120,
+    "editor.wordWrapColumn": 180,
     "files.insertFinalNewline": true,
     "files.trimFinalNewlines": true,
     "files.trimTrailingWhitespace": true,
     "isort.args": [
         "-l",
         "120",
-        "--profile=black",
+        "--profile=black"
         // "--src=${workspaceFolder}"
     ],
-    "python.formatting.autopep8Args": [
-        "--max-line-length",
-        "120",
-        "--experimental"
-    ],
-    "python.formatting.provider": "autopep8",
-    "python.formatting.blackArgs": [
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
+    "black-formatter.args": [
         "--line-length=120"
     ],
-    "python.linting.enabled": true,
-    "python.linting.flake8Enabled": true,
-    "python.linting.flake8Args": [
+    "flake8.args": [
         "--max-line-length=120",
         //Added the ignore of E203 for now : https://github.com/PyCQA/pycodestyle/issues/373
         "--ignore=E203,W503"
     ],
-    "python.linting.pylintEnabled": false,
+    "autopep8.args": [
+        "--max-line-length=120",
+    ],
+    "python.testing.pytestEnabled": true,
 }

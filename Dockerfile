@@ -1,7 +1,7 @@
 ARG branch=latest
 FROM cccs/assemblyline-v4-service-base:$branch
 
-ENV SERVICE_PATH badlist.Badlist
+ENV SERVICE_PATH badlist.badlist.Badlist
 
 # Copy Badlist service code
 WORKDIR /opt/al_service

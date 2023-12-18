@@ -1,0 +1,35 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "RunServiceOnce",
+            "type": "python",
+            "request": "launch",
+            "module": "assemblyline_v4_service.dev.run_service_once",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "-d",
+                "badlist.badlist.Badlist",
+                "/path/to/sample"
+            ],
+            "justMyCode": false,
+        },
+        {
+            "name": "RunUpdater",
+            "type": "python",
+            "request": "launch",
+            "module": "badlist.update_server",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "UPDATER_DIR": "${workspaceFolder}/updates",
+                "SERVICE_PATH": "badlist.badlist.Badlist",
+                "AL_SERVICE_NAME": "Badlist",
+                "UI_SERVER": "https://nginx/"
+            },
+            "justMyCode": false,
+        },
+    ]
+}
