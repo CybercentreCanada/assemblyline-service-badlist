@@ -85,6 +85,36 @@ config:
     malpedia_attribution:
       type: attribution_list
       format: list
+    "threatview.io C2 Hunt Feed":
+      type: blocklist
+      format: csv
+      start: 3
+      ip: 0
+      domain: 2
+      reference: 5
+      default_attribution:
+        family: ["COBALT STRIKE"]
+    "threatview.io IP Blocklist":
+      type: blocklist
+      format: csv
+      ip: 0
+    "threatview.io Domain Blocklist":
+      type: blocklist
+      format: csv
+      domain: 0
+    "threatview.io MD5 Hash Blocklist":
+      type: blocklist
+      format: csv
+      md5: 0
+    "threatview.io URL Blocklist":
+      type: blocklist
+      format: csv
+      uri: 0
+    "threatview.io SHA Hash Blocklist":
+      type: blocklist
+      format: csv
+      sha1: 0
+
 
 docker_config:
   image: ${REGISTRY}cccs/assemblyline-service-badlist:$SERVICE_TAG
@@ -125,5 +155,23 @@ update_config:
     - name: threatfox
       uri: https://threatfox.abuse.ch/export/csv/full
       pattern: .*\.csv
+    - name: "threatview.io C2 Hunt Feed"
+      uri: https://threatview.io/Downloads/High-Confidence-CobaltStrike-C2%20-Feeds.txt
+      pattern: .*\.txt
+    - name: "threatview.io IP Blocklist"
+      uri: https://threatview.io/Downloads/IP-High-Confidence-Feed.txt
+      pattern: .*\.txt
+    - name: "threatview.io Domain Blocklist"
+      uri: https://threatview.io/Downloads/DOMAIN-High-Confidence-Feed.txt
+      pattern: .*\.txt
+    - name: "threatview.io MD5 Hash Blocklist"
+      uri: https://threatview.io/Downloads/MD5-HASH-ALL.txt
+      pattern: .*\.txt
+    - name: "threatview.io URL Blocklist"
+      uri: https://threatview.io/Downloads/URL-High-Confidence-Feed.txt
+      pattern: .*\.txt
+    - name: "threatview.io SHA Hash Blocklist"
+      uri: https://threatview.io/Downloads/SHA-HASH-FEED.txt
+      pattern: .*\.txt
   update_interval_seconds: 900 # Every 15 minutes
   wait_for_update: false
