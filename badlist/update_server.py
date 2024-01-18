@@ -1,7 +1,9 @@
 import csv
 import json
+import os
 import re
 from copy import deepcopy
+from queue import Queue
 from typing import List, Set
 
 from assemblyline.odm.base import (
@@ -15,6 +17,8 @@ from assemblyline.odm.base import (
     TLSH_REGEX,
 )
 from assemblyline_v4_service.updater.updater import ServiceUpdater
+
+BLOCKLIST_UPDATE_BATCH = int(os.environ.get("BLOCKLIST_UPDATE_BATCH", "1000"))
 
 IOC_CHECK = {
     "ip": re.compile(IP_ONLY_REGEX).match,
@@ -45,6 +49,7 @@ class BadlistUpdateServer(ServiceUpdater):
         super().__init__(*args, **kwargs)
         self.malware_families: Set[str] = set()
         self.attributions: Set[str] = set()
+        self.update_queue = Queue()
 
     def do_local_update(self):
         ...
@@ -52,24 +57,18 @@ class BadlistUpdateServer(ServiceUpdater):
     # A sanity check to make sure we do in fact have things to send to services
     def _inventory_check(self) -> bool:
         success = True
-
-        def _trigger_update(source):
-            self._current_source = source
-            self.set_source_update_time(0)
-            self.trigger_update()
-
         if not self.attributions:
-            # Trigger an update for any sources that contribute to attributions list
+            # Queue an update for any sources that contribute to attributions list
             [
-                _trigger_update(_s.name)
+                self.update_queue.put(_s.name)
                 for _s in self._service.update_config.sources
                 if self._service.config["updater"][_s.name]["type"] == "attribution_list"
             ]
 
         if not self.malware_families:
-            # Trigger an update for any sources that contribute to the malware families list
+            # Queue an update for any sources that contribute to the malware families list
             [
-                _trigger_update(_s.name)
+                self.update_queue.put(_s.name)
                 for _s in self._service.update_config.sources
                 if self._service.config["updater"][_s.name]["type"] == "malware_family_list"
             ]
@@ -91,11 +90,15 @@ class BadlistUpdateServer(ServiceUpdater):
             success = True
 
         # Trigger an update for the blocklists that are missing
-        [_trigger_update(source) for source in missing_blocklists]
+        if missing_blocklists:
+            [self.update_queue.put(source) for source in missing_blocklists]
+            self.trigger_update()
 
         return success
 
     def import_update(self, files_sha256, al_client, source_name, default_classification):
+        blocklist_batch = []
+
         def sanitize_data(data: str, type: str, validate=True) -> List[str]:
             if not data:
                 return []
@@ -175,7 +178,10 @@ class BadlistUpdateServer(ServiceUpdater):
                 badlist_items.append(badlist_item)
 
             [prepare_item(bl_item) for bl_item in badlist_items]
-            al_client.badlist.add_update_many(badlist_items)
+            blocklist_batch.extend(badlist_items)
+            if len(blocklist_batch) > BLOCKLIST_UPDATE_BATCH:
+                al_client.badlist.add_update_many(blocklist_batch)
+                blocklist_batch.clear()
 
         source_cfg = self._service.config["updater"][source_name]
 
@@ -264,6 +270,8 @@ class BadlistUpdateServer(ServiceUpdater):
                                             references,
                                             bl_type="tag" if ioc_type in NETWORK_IOC_TYPES else "file",
                                         )
+            if blocklist_batch:
+                al_client.badlist.add_update_many(blocklist_batch)
 
         elif source_cfg["type"] == "malware_family_list":
             # This source is meant to contributes to the list of valid malware families
