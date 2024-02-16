@@ -96,7 +96,7 @@ class BadlistUpdateServer(ServiceUpdater):
 
         return success
 
-    def import_update(self, files_sha256, al_client, source_name, default_classification):
+    def import_update(self, files_sha256, source_name, default_classification):
         blocklist_batch = []
 
         def sanitize_data(data: str, type: str, validate=True) -> List[str]:
@@ -180,7 +180,7 @@ class BadlistUpdateServer(ServiceUpdater):
             [prepare_item(bl_item) for bl_item in badlist_items]
             blocklist_batch.extend(badlist_items)
             if len(blocklist_batch) > BLOCKLIST_UPDATE_BATCH:
-                al_client.badlist.add_update_many(blocklist_batch)
+                self.client.badlist.add_update_many(blocklist_batch)
                 blocklist_batch.clear()
 
         source_cfg = self._service.config["updater"][source_name]
@@ -271,7 +271,7 @@ class BadlistUpdateServer(ServiceUpdater):
                                             bl_type="tag" if ioc_type in NETWORK_IOC_TYPES else "file",
                                         )
             if blocklist_batch:
-                al_client.badlist.add_update_many(blocklist_batch)
+                self.client.badlist.add_update_many(blocklist_batch)
 
         elif source_cfg["type"] == "malware_family_list":
             # This source is meant to contributes to the list of valid malware families
