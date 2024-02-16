@@ -129,6 +129,7 @@ dependencies:
       command: ["python", "-m", "badlist.update_server"]
       image: ${REGISTRY}cccs/assemblyline-service-badlist:$SERVICE_TAG
       ports: ["5003"]
+      cpu_cores: 2
       ram_mb: 4096
     run_as_core: True
 
