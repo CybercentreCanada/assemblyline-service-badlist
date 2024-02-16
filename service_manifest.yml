@@ -16,6 +16,7 @@ uses_tags: true
 file_required: false
 timeout: 10
 disable_cache: false
+privileged: true
 
 enabled: true
 

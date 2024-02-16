@@ -27,7 +27,6 @@
                 "UPDATER_DIR": "${workspaceFolder}/updates",
                 "SERVICE_PATH": "badlist.badlist.Badlist",
                 "AL_SERVICE_NAME": "Badlist",
-                "UI_SERVER": "https://nginx/"
             },
             "justMyCode": false,
         },
