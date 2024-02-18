@@ -123,7 +123,7 @@ class Badlist(ServiceBase):
                         "Last updated": badlisted["updated"],
                     },
                     heuristic=Heuristic(2, score_map=self.source_score_override, signatures=badlisted["sources"]),
-                    classification=source.get("classification", classification.UNRESTRICTED),
+                    classification=badlisted.get("classification", classification.UNRESTRICTED),
                     tags={badlisted["tag"]["type"]: [badlisted["tag"]["value"]]},
                 )
 
