@@ -51,8 +51,7 @@ class BadlistUpdateServer(ServiceUpdater):
         self.attributions: Set[str] = set()
         self.update_queue = Queue()
 
-    def do_local_update(self):
-        ...
+    def do_local_update(self): ...
 
     # A sanity check to make sure we do in fact have things to send to services
     def _inventory_check(self) -> bool:

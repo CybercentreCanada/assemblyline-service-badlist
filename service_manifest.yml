@@ -26,11 +26,13 @@ heuristics:
     score: 1000
     filetype: "*"
     description: This file is found in the list of know bad files
+    max_score: 1000
   - heur_id: 2
     name: Badlisted IOC
     score: 1000
     filetype: "*"
     description: This Indicator Of Compromise is found in the list of know bad IOCs
+    max_score: 1000
   - heur_id: 3
     name: Badlisted Similar File
     score: 500
@@ -116,7 +118,6 @@ config:
       format: csv
       sha1: 0
 
-
 docker_config:
   image: ${REGISTRY}cccs/assemblyline-service-badlist:$SERVICE_TAG
   cpu_cores: 0.4
@@ -129,6 +130,7 @@ dependencies:
       command: ["python", "-m", "badlist.update_server"]
       image: ${REGISTRY}cccs/assemblyline-service-badlist:$SERVICE_TAG
       ports: ["5003"]
+      cpu_cores: 2
       ram_mb: 4096
     run_as_core: True
 
