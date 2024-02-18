@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from assemblyline.common import forge
 from assemblyline.common.isotime import epoch_to_iso, now
 from assemblyline.common.net import is_valid_ip
@@ -122,7 +124,6 @@ class Badlist(ServiceBase):
                         "First added": badlisted["added"],
                         "Last updated": badlisted["updated"],
                     },
-                    heuristic=Heuristic(2, score_map=self.source_score_override, signatures=badlisted["sources"]),
                     classification=badlisted.get("classification", classification.UNRESTRICTED),
                     tags={badlisted["tag"]["type"]: [badlisted["tag"]["value"]]},
                 )
@@ -135,10 +136,12 @@ class Badlist(ServiceBase):
                             bad_ioc_section.add_tag(f"attribution.{tag_type}", v)
 
                 # Create a sub-section per source
+                signatures = {}
                 for source in badlisted["sources"]:
                     if source["type"] == "user":
                         msg = f"User '{source['name']}' deemed the tag as bad for the following reason(s):"
                     else:
+                        signatures[source['name']] = 1
                         msg = f"External source '{source['name']}' deems the tag as bad for the following reason(s):"
 
                     bad_ioc_section.add_subsection(
@@ -149,6 +152,7 @@ class Badlist(ServiceBase):
                         )
                     )
 
+                bad_ioc_section.set_heuristic(Heuristic(2, score_map=self.source_score_override, signatures=signatures))
                 # Add the bad IOC section to the results
                 result.add_section(bad_ioc_section)
 
