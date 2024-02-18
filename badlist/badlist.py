@@ -17,6 +17,13 @@ class Badlist(ServiceBase):
             "tlsh": self.api_interface.lookup_badlist_tlsh,
         }
 
+        # This is a map that allows us to override the default badlist scoring by source
+        self.source_score_override = {
+            source_name: int(config["score"])
+            for source_name, config in self.config.get("updater").items()
+            if config.get("type") == "blocklist" and config.get("score")
+        }
+
     def start(self):
         self.timeout = self.config.get("cache_timeout_seconds", self.timeout)
 
@@ -107,10 +114,16 @@ class Badlist(ServiceBase):
         for badlisted in badlisted_tags:
             if badlisted and badlisted["enabled"] and badlisted["type"] == "tag":
                 # Create the bad section
-                bad_ioc_section = ResultSection(
-                    f"'{badlisted['tag']['value']}' tag was found in the list of bad IOCs",
-                    heuristic=Heuristic(2),
-                    classification=badlisted.get("classification", classification.UNRESTRICTED),
+                bad_ioc_section = ResultOrderedKeyValueSection(
+                    title_text=f"'{badlisted['tag']['value']}' tag was found in the list of bad IOCs",
+                    body={
+                        "IOC": badlisted["tag"]["type"],
+                        "IOC Type": badlisted["tag"]["value"],
+                        "First added": badlisted["added"],
+                        "Last updated": badlisted["updated"],
+                    },
+                    heuristic=Heuristic(2, score_map=self.source_score_override, signatures=badlisted["sources"]),
+                    classification=source.get("classification", classification.UNRESTRICTED),
                     tags={badlisted["tag"]["type"]: [badlisted["tag"]["value"]]},
                 )
 
@@ -124,12 +137,9 @@ class Badlist(ServiceBase):
                 # Create a sub-section per source
                 for source in badlisted["sources"]:
                     if source["type"] == "user":
-                        msg = f"User {source['name']} deemed the tag as bad for the following reason(s):"
+                        msg = f"User '{source['name']}' deemed the tag as bad for the following reason(s):"
                     else:
-                        msg = (
-                            f"External badlist source {source['name']} deems the tag as bad for the "
-                            "following reason(s):"
-                        )
+                        msg = f"External source '{source['name']}' deems the tag as bad for the following reason(s):"
 
                     bad_ioc_section.add_subsection(
                         ResultSection(
