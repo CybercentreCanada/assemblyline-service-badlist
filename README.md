@@ -9,10 +9,11 @@ When adding sources to the service, there are two types of expected data formats
 - csv
 - json
 
-There are also two types of sources for this service:
+There are also multiple types of sources for this service:
 
 - blocklist
 - malware_family_list
+- attribution_list
 
 ### Blocklist Data Formats
 
@@ -20,7 +21,7 @@ In order for the service to pull the right IOCs and categorize them per source, 
 
 Within each `source` map, you'll specify the type of source this is (`blocklist`) as well as set the format (`json` | `csv`).
 
-You'll also have to specify the different IOC types (`domain`, `ip`, `uri`) you expect to find in the data and where.
+You'll also have to specify the different IOC types (`domain`, `ip`, `uri`, `md5`, `sha1`, `sha256`, `ssdeep`, `tlsh`) you expect to find in the data and where.
 
 For example if dealing with a CSV file and you expect to find `uri`s in the 3rd column per row:
 
@@ -49,3 +50,5 @@ config:
       format: json
       uri: "bad_uri"
 ```
+
+You can also override Assemblyline's default scoring of badlist matches (1000 points) by providing a `score` per source.
