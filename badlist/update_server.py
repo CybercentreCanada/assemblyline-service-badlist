@@ -134,6 +134,10 @@ class BadlistUpdateServer(ServiceUpdater):
 
                 bl_item["attribution"] = attr
 
+                # Optionally set an expiration DTL based on the source
+                if source_cfg.get("dtl"):
+                    bl_item["dtl"] = int(source_cfg["dtl"])
+
             references = [r for r in references if re.match(FULL_URI, r)]
             badlist_items = []
 
