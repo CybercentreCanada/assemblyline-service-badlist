@@ -119,8 +119,8 @@ class Badlist(ServiceBase):
                 bad_ioc_section = ResultOrderedKeyValueSection(
                     title_text=f"'{badlisted['tag']['value']}' tag was found in the list of bad IOCs",
                     body={
-                        "IOC": badlisted["tag"]["type"],
-                        "IOC Type": badlisted["tag"]["value"],
+                        "IOC": badlisted["tag"]["value"],
+                        "IOC Type": badlisted["tag"]["type"],
                         "First added": badlisted["added"],
                         "Last updated": badlisted["updated"],
                     },
@@ -141,7 +141,7 @@ class Badlist(ServiceBase):
                     if source["type"] == "user":
                         msg = f"User '{source['name']}' deemed the tag as bad for the following reason(s):"
                     else:
-                        signatures[source['name']] = 1
+                        signatures[source["name"]] = 1
                         msg = f"External source '{source['name']}' deems the tag as bad for the following reason(s):"
 
                     bad_ioc_section.add_subsection(
