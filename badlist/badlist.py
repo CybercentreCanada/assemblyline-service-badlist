@@ -116,17 +116,15 @@ class Badlist(ServiceBase):
         for badlisted in badlisted_tags:
             if badlisted and badlisted["enabled"] and badlisted["type"] == "tag":
                 # Create the bad section
-                bad_ioc_section = ResultOrderedKeyValueSection(
-                    title_text=f"'{badlisted['tag']['value']}' tag was found in the list of bad IOCs",
-                    body={
-                        "IOC": badlisted["tag"]["value"],
-                        "IOC Type": badlisted["tag"]["type"],
-                        "First added": badlisted["added"],
-                        "Last updated": badlisted["updated"],
-                    },
-                    classification=badlisted.get("classification", classification.UNRESTRICTED),
-                    tags={badlisted["tag"]["type"]: [badlisted["tag"]["value"]]},
-                )
+                bad_ioc_section = ResultSection(badlisted["tag"]["value"])
+
+                # Create a metadata body
+                metadata_body = {
+                    "IOC Type": badlisted["tag"]["type"],
+                    "IOC Value": badlisted["tag"]["value"],
+                    "First added": badlisted["added"],
+                    "Last updated": badlisted["updated"],
+                }
 
                 # Add attribution tags
                 attributions = badlisted.get("attribution", {}) or {}
@@ -134,25 +132,39 @@ class Badlist(ServiceBase):
                     if values:
                         for v in values:
                             bad_ioc_section.add_tag(f"attribution.{tag_type}", v)
+                        # Add any values that will be tagged in the metadata body
+                        metadata_body[tag_type] = values
+
+                # Add metadata section to parent
+                bad_ioc_section.add_subsection(
+                    ResultOrderedKeyValueSection(
+                        title_text="Metadata",
+                        body=metadata_body,
+                        classification=badlisted.get("classification", classification.UNRESTRICTED),
+                        tags={badlisted["tag"]["type"]: [badlisted["tag"]["value"]]},
+                    )
+                )
 
                 # Create a sub-section per source
-                signatures = {}
                 for source in badlisted["sources"]:
+                    signatures = {}
                     if source["type"] == "user":
-                        msg = f"User '{source['name']}' deemed the tag as bad for the following reason(s):"
+                        msg = f"User '{source['name']}' deemed the tag as bad"
                     else:
                         signatures[source["name"]] = 1
-                        msg = f"External source '{source['name']}' deems the tag as bad for the following reason(s):"
+                        msg = f"External source '{source['name']}' deems the tag as bad"
 
+                    source_classfication = source.pop("classification", classification.UNRESTRICTED)
                     bad_ioc_section.add_subsection(
-                        ResultSection(
+                        ResultOrderedKeyValueSection(
                             msg,
-                            body="\n".join(source["reason"]),
-                            classification=source.get("classification", classification.UNRESTRICTED),
+                            body=source,
+                            classification=source_classfication,
+                            heuristic=Heuristic(2, score_map=self.source_score_override, signatures=signatures),
+                            tags={badlisted["tag"]["type"]: [badlisted["tag"]["value"]]},
                         )
                     )
 
-                bad_ioc_section.set_heuristic(Heuristic(2, score_map=self.source_score_override, signatures=signatures))
                 # Add the bad IOC section to the results
                 result.add_section(bad_ioc_section)
 

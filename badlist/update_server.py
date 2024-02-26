@@ -1,6 +1,5 @@
 import csv
 import json
-import os
 import re
 from copy import deepcopy
 from queue import Queue
@@ -17,8 +16,6 @@ from assemblyline.odm.base import (
     TLSH_REGEX,
 )
 from assemblyline_v4_service.updater.updater import ServiceUpdater
-
-BLOCKLIST_UPDATE_BATCH = int(os.environ.get("BLOCKLIST_UPDATE_BATCH", "1000"))
 
 IOC_CHECK = {
     "ip": re.compile(IP_ONLY_REGEX).match,
@@ -182,9 +179,6 @@ class BadlistUpdateServer(ServiceUpdater):
 
             [prepare_item(bl_item) for bl_item in badlist_items]
             blocklist_batch.extend(badlist_items)
-            if len(blocklist_batch) > BLOCKLIST_UPDATE_BATCH:
-                self.client.badlist.add_update_many(blocklist_batch)
-                blocklist_batch.clear()
 
         source_cfg = self._service.config["updater"][source_name]
 
