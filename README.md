@@ -52,3 +52,10 @@ config:
 ```
 
 You can also override Assemblyline's default scoring of badlist matches (1000 points) by providing a `score` per source.
+
+### Automated Expiration
+
+By default, we assume that all the items added to the Badlist will be valid forever but that's not always the cases.
+You will also be able to set a DTL (Days to Live) period for items that belong to a source using `dtl`.
+
+If there are multiple sources with DTLs configured that raise an item, then the expiry date will be extended by the sum of the DTL values at the time of importing.
