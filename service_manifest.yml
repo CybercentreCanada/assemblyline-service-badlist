@@ -88,7 +88,7 @@ config:
     malpedia_attribution:
       type: attribution_list
       format: list
-    "threatview.io C2 Hunt Feed":
+    "threatview.io_C2_Hunt_Feed":
       type: blocklist
       format: csv
       start: 3
@@ -97,23 +97,23 @@ config:
       reference: 5
       default_attribution:
         family: ["COBALT STRIKE"]
-    "threatview.io IP Blocklist":
+    "threatview.io_IP_Blocklist":
       type: blocklist
       format: csv
       ip: 0
-    "threatview.io Domain Blocklist":
+    "threatview.io_Domain_Blocklist":
       type: blocklist
       format: csv
       domain: 0
-    "threatview.io MD5 Hash Blocklist":
+    "threatview.io_MD5_Hash_Blocklist":
       type: blocklist
       format: csv
       md5: 0
-    "threatview.io URL Blocklist":
+    "threatview.io_URL_Blocklist":
       type: blocklist
       format: csv
       uri: 0
-    "threatview.io SHA Hash Blocklist":
+    "threatview.io_SHA_Hash_Blocklist":
       type: blocklist
       format: csv
       sha1: 0
@@ -158,22 +158,22 @@ update_config:
     - name: threatfox
       uri: https://threatfox.abuse.ch/export/csv/full
       pattern: .*\.csv
-    - name: "threatview.io C2 Hunt Feed"
+    - name: "threatview.io_C2_Hunt_Feed"
       uri: https://threatview.io/Downloads/High-Confidence-CobaltStrike-C2%20-Feeds.txt
       pattern: .*\.txt
-    - name: "threatview.io IP Blocklist"
+    - name: "threatview.io_IP_Blocklist"
       uri: https://threatview.io/Downloads/IP-High-Confidence-Feed.txt
       pattern: .*\.txt
-    - name: "threatview.io Domain Blocklist"
+    - name: "threatview.io_Domain_Blocklist"
       uri: https://threatview.io/Downloads/DOMAIN-High-Confidence-Feed.txt
       pattern: .*\.txt
-    - name: "threatview.io MD5 Hash Blocklist"
+    - name: "threatview.io_MD5_Hash_Blocklist"
       uri: https://threatview.io/Downloads/MD5-HASH-ALL.txt
       pattern: .*\.txt
-    - name: "threatview.io URL Blocklist"
+    - name: "threatview.io_URL_Blocklist"
       uri: https://threatview.io/Downloads/URL-High-Confidence-Feed.txt
       pattern: .*\.txt
-    - name: "threatview.io SHA Hash Blocklist"
+    - name: "threatview.io_SHA_Hash_Blocklist"
       uri: https://threatview.io/Downloads/SHA-HASH-FEED.txt
       pattern: .*\.txt
   update_interval_seconds: 900 # Every 15 minutes
