@@ -187,7 +187,10 @@ class BadlistUpdateServer(ServiceUpdater):
             [prepare_item(bl_item) for bl_item in badlist_items]
             blocklist_batch.extend(badlist_items)
 
-        source_cfg = self._service.config["updater"][source_name]
+        try:
+            source_cfg = self._service.config["updater"][source_name]
+        except KeyError as exc:
+            raise ValueError(f"Source '{source_name}' not found in the service configuration") from exc
 
         if source_cfg["type"] == "blocklist":
             # This source is meant to contribute to the blocklist
