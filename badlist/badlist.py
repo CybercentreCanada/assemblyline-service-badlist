@@ -168,6 +168,10 @@ class Badlist(ServiceBase):
                 # Add the bad IOC section to the results
                 result.add_section(bad_ioc_section)
 
+                # If this is a URI and we have confidence that it is bad, extract as an extracted file
+                if badlisted["tag"]["type"].endswith("uri"):
+                    request.add_extracted_uri("URI found in badlist", badlisted["tag"]["value"])
+
         # Check for similarity hashes ssdeep
         for hash_type in similar_hash_types:
             similar_hashes = self.similar_api_map[hash_type](request.task.fileinfo[hash_type])
