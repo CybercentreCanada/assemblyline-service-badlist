@@ -76,10 +76,14 @@ config:
     threatfox:
       type: blocklist
       format: csv
+      dtl: 30
       start: 9
       ip: 2
       domain: 2
       uri: 2
+      sha1: 2
+      sha256: 2
+      md5: 2
       malware_family: 5
       reference: 10
     malpedia:
@@ -156,8 +160,8 @@ update_config:
       uri: https://feodotracker.abuse.ch/downloads/ipblocklist.json
       pattern: .*ipblocklist\.json
     - name: threatfox
-      uri: https://threatfox.abuse.ch/export/csv/full
-      pattern: .*\.csv
+      uri: https://threatfox.abuse.ch/export/csv/recent
+      pattern: .*\/recent
     - name: "threatview.io_C2_Hunt_Feed"
       uri: https://threatview.io/Downloads/High-Confidence-CobaltStrike-C2%20-Feeds.txt
       pattern: .*\.txt
