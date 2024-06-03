@@ -138,8 +138,13 @@ class BadlistUpdateServer(ServiceUpdater):
                     new_expiry_ts = now(float(source_cfg["dtl"]) * 24 * 3600)
                     qhash = self.client.badlist._preprocess_object(bl_item)
                     ds_item = self.client.datastore.badlist.get_if_exists(qhash, as_obj=False)
-                    # If the item doesn't exist or it does but we have the greater expiry, then set the DTL
-                    if not ds_item or (ds_item.get("expiry_ts") and iso_to_epoch(ds_item["expiry_ts"]) < new_expiry_ts):
+                    # If the item doesn't exist, doesn't have an expiry, or will expire sooner than what's configured by the source
+                    if (
+                        not ds_item
+                        or ds_item.get("expiry_ts") == None
+                        or (ds_item.get("expiry_ts") and iso_to_epoch(ds_item["expiry_ts"]) < new_expiry_ts)
+                    ):
+                        # Set the DTL based on the configured value for the source
                         bl_item["dtl"] = int(source_cfg["dtl"])
 
             references = [r for r in references if re.match(FULL_URI, r)]
