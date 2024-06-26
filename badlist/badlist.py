@@ -95,6 +95,8 @@ class Badlist(ServiceBase):
 
         # Add the uri file type data as potential tags to check
         tags = request.task.tags
+        tags.setdefault("network.static.domain", [])
+        tags.setdefault("network.dynamic.domain", [])
         if request.file_type.startswith("uri/") and request.task.fileinfo.uri_info:
             tags.setdefault("network.static.uri", [])
             tags.setdefault("network.dynamic.uri", [])
