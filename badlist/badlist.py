@@ -111,6 +111,11 @@ class Badlist(ServiceBase):
             tags[f"network.static.{net_type}"].append(request.task.fileinfo.uri_info.hostname)
             tags[f"network.dynamic.{net_type}"].append(request.task.fileinfo.uri_info.hostname)
 
+        # Filter out email domains from network domains before checking blocklist for hits
+        email_domains = set([x.split("@", 1)[1] for x in tags.get("network.email.address", [])])
+        tags["network.static.domain"] = list(set(tags["network.static.domain"]) - email_domains)
+        tags["network.dynamic.domain"] = list(set(tags["network.dynamic.domain"]) - email_domains)
+
         # Check the list of tags as a batch
         badlisted_tags = self.api_interface.lookup_badlist_tags(request.task.tags)
         for badlisted in badlisted_tags:
