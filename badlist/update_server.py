@@ -218,24 +218,24 @@ class BadlistUpdateServer(ServiceUpdater):
                                 # Skip row
                                 continue
 
-                            references = [] if not source_cfg.get("reference") else [row[source_cfg["reference"]]]
+                            references = [] if source_cfg.get("reference") is None else [row[source_cfg["reference"]]]
                             # Get malware family
                             malware_family = (
                                 sanitize_data(row[source_cfg["malware_family"]], type="malware_family")
-                                if source_cfg.get("malware_family")
+                                if source_cfg.get("malware_family") is not None
                                 else []
                             )
 
                             # Get attribution
                             attribution = (
                                 sanitize_data(row[source_cfg["attribution"]], type="attribution")
-                                if source_cfg.get("attribution")
+                                if source_cfg.get("attribution") is not None
                                 else []
                             )
 
                             campaign = (
                                 sanitize_data(row[source_cfg["campaign"]], type="campaign", validate=False)
-                                if source_cfg.get("campaign")
+                                if source_cfg.get("campaign") is not None
                                 else []
                             )
 
