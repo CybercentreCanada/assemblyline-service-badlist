@@ -118,6 +118,7 @@ class BadlistUpdateServer(ServiceUpdater):
             ioc_value: str,
             malware_family: List[str],
             attribution: List[str],
+            campaign: List[str],
             references: List[str],
             bl_type: str,
         ):
@@ -129,6 +130,9 @@ class BadlistUpdateServer(ServiceUpdater):
 
                 if attribution:
                     attr["actor"] = list(set(attribution))
+
+                if campaign:
+                    attr["campaign"] = list(set(campaign))
 
                 bl_item["attribution"] = attr
 
@@ -229,6 +233,12 @@ class BadlistUpdateServer(ServiceUpdater):
                                 else []
                             )
 
+                            campaign = (
+                                sanitize_data(row[source_cfg["campaign"]], type="campaign", validate=False)
+                                if source_cfg.get("campaign")
+                                else []
+                            )
+
                             # Iterate over all IOC types
                             for ioc_type in NETWORK_IOC_TYPES + FILEHASH_TYPES:
                                 if source_cfg.get(ioc_type) is None:
@@ -247,6 +257,7 @@ class BadlistUpdateServer(ServiceUpdater):
                                     ioc_value,
                                     malware_family,
                                     attribution,
+                                    campaign,
                                     references,
                                     bl_type="tag" if ioc_type in NETWORK_IOC_TYPES else "file",
                                 )
@@ -271,6 +282,8 @@ class BadlistUpdateServer(ServiceUpdater):
                                 # Get attribution
                                 attribution = sanitize_data(data.get(source_cfg.get("attribution")), type="attribution")
 
+                                campaign = sanitize_data(data.get(source_cfg.get("campaign")), type="campaign", validate=False)
+
                                 for ioc_type in NETWORK_IOC_TYPES + FILEHASH_TYPES:
                                     ioc_value = data.get(source_cfg.get(ioc_type))
                                     if ioc_value:
@@ -279,6 +292,7 @@ class BadlistUpdateServer(ServiceUpdater):
                                             ioc_value,
                                             malware_family,
                                             attribution,
+                                            campaign,
                                             references,
                                             bl_type="tag" if ioc_type in NETWORK_IOC_TYPES else "file",
                                         )
