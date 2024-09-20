@@ -14,12 +14,10 @@ This service interfaces with Assemblyline's Badlist to mark tags or files as mal
 ### Sources
 
 When adding sources to the service, there are two types of expected data formats
-
 - csv
 - json
 
 There are also multiple types of sources for this service:
-
 - blocklist
 - malware_family_list
 - attribution_list
@@ -32,9 +30,9 @@ Within each `source` map, you'll specify the type of source this is (`blocklist`
 
 You'll also have to specify the different IOC types (`domain`, `ip`, `uri`, `md5`, `sha1`, `sha256`, `ssdeep`, `tlsh`) you expect to find in the data and where.
 
-For example if dealing with a CSV file and you expect to find `uri`s in the 3rd column per row:
+For example if dealing with a CSV file and you expect to find `uri`s in the 3rd column:
 
-ie. "`<date>,<name>,https://google.com,...`"
+`<date>,<name>,https://google.com,...`
 
 Then your source configuration will look like:
 
@@ -49,7 +47,7 @@ config:
 
 Similarly, if you're dealing with a JSON list (`[{}, {}, ...]`) and you know to find `uri`s under the key `bad_uri` in each record:
 
-ie. `{"bad_uri": "https://google.com", "family": "bad_stuff", ...}`
+`{"bad_uri": "https://google.com", "family": "bad_stuff", ...}`
 
 ```yaml
 config:
@@ -67,7 +65,7 @@ You can also override Assemblyline's default scoring of badlist matches (1000 po
 By default, we assume that all the items added to the Badlist will be valid forever but that's not always the cases.
 You will also be able to set a DTL (Days to Live) period for items that belong to a source using `dtl`.
 
-If there are multiple sources with DTLs configured that raise an item, then the expiry date will be extended by the sum of the DTL values at the time of importing.
+If there are multiple sources with DTLs configured that raise an item, then the expiry date will be set such that it uses the longest requested DTL at the time of import.
 
 ## Image variants and tags
 
@@ -103,7 +101,7 @@ General Assemblyline documentation can be found at: https://cybercentrecanada.gi
 
 # Service Badlist
 
-Ce service s'interface avec Badlist d'Assemblyline pour marquer les tags ou les fichiers comme malveillants.
+Ce service interface avec la liste mauvaise d'Assemblyline pour marquer les tags ou les fichiers comme malveillants.
 
 ## Détails du Service
 ### Sources
@@ -116,18 +114,18 @@ Il existe également plusieurs types de sources pour ce service :
  - liste de familles de logiciels malveillants
  - liste d'attribution
 
-#### Formats de Données de la Liste de Blocage
-Pour que le service puisse extraire les bons IOCs et les catégoriser par source, vous devrez lui indiquer comment le faire en utilisant la clé `config.updater.<source>`. 
+#### Formats de données de la Liste de Blocage
+Pour que le service puisse extraire les bons tags et les catégoriser par source, vous devrez lui indiquer comment le faire en utilisant la clé `config.updater.<source>`. 
 
-Dans chaque carte `source`, vous spécifierez le type de source (blocklist) ainsi que le format (`json` | `csv`).
+Dans chaque structure de données `source`, vous spécifierez le type de source (blocklist) ainsi que le format (`json` | `csv`).
 
-Vous devrez également spécifier les différents types d'IOC (`domain`, `ip`, `uri`, `md5`, `sha1`, `sha256`, `ssdeep`, `tlsh`) que vous vous attendez à trouver dans les données et où.
+Vous devrez également spécifier les différents types de tags (`domain`, `ip`, `uri`, `md5`, `sha1`, `sha256`, `ssdeep`, `tlsh`) que vous vous attendez à trouver dans les données et où.
 
-Par exemple, si vous traitez un fichier CSV et que vous vous attendez à trouver des `uri` dans la 3ème colonne par ligne: 
+Par exemple, si vous utilisez un fichier CSV et que vous vous attendez à trouver des `uri` dans la 3ème colonne: 
 
-par exemple "`<date>,<nom>,https://google.com,...`"
+`<date>,<nom>,https://google.com,...`
 
-Alors votre configuration de source ressemblera à ceci :
+Votre configuration de `source` ressemblera à ceci :
 ```yaml
 config:
   updater:
@@ -136,9 +134,9 @@ config:
       format: csv
       uri: 2
 ```
-De même, si vous traitez une liste JSON (`[{}, {}, ...]`) et que vous savez trouver des `uri` sous la clé `bad_uri` dans chaque enregistrement : 
+De même, si vous utilisez une liste JSON (`[{}, {}, ...]`) et que vous avez des `uri` sous la clé `bad_uri` dans chaque entrée : 
 
-par exemple `{"bad_uri": "https://google.com", "family": "bad_stuff", ...}`
+`{"bad_uri": "https://google.com", "family": "bad_stuff", ...}`
 
 ```yaml
 config:
@@ -148,12 +146,12 @@ config:
       format: json
       uri: "bad_uri"
 ```
-Vous pouvez également remplacer le score par défaut d'Assemblyline pour les correspondances de la liste noire (1000 points) en fournissant un `score` par source.
+Vous pouvez également remplacer le score par défaut d'Assemblyline pour les éléments trouvés dans la liste mauvaise (1000 points) en fournissant un `score` par source.
 
 #### Expiration Automatisée
-Par défaut, nous supposons que tous les éléments ajoutés à la liste noire seront valides pour toujours, mais ce n'est pas toujours le cas. Vous pourrez également définir une période de DTL (jours à vivre) pour les éléments appartenant à une source en utilisant `dtl`. 
+Par défaut, nous supposons que tous les éléments ajoutés à la liste noire seront valides pour toujours, mais ce n'est pas toujours le cas. Vous pourrez également définir une période d'expiration pour les éléments appartenant à une source en utilisant `dtl` (`days to live`, ou jours à vivre en anglais). 
 
-S'il y a plusieurs sources avec des DTL configurés qui élèvent un élément, alors la date d'expiration sera prolongée de la somme des valeurs de DTL au moment de l'importation.
+S'il y a plusieurs sources avec des expirations configurées contenant un même élément, la date d'expiration sera prolongée à la date d'expiration la plus lointaine au moment de l'importation.
 
 ## Variantes et étiquettes d'image
 
