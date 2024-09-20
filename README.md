@@ -103,7 +103,7 @@ General Assemblyline documentation can be found at: https://cybercentrecanada.gi
 
 # Service Badlist
 
-Ce service s'interface avec Badlist d'Assemblyline pour marquer les balises ou les fichiers comme malveillants.
+Ce service s'interface avec Badlist d'Assemblyline pour marquer les tags ou les fichiers comme malveillants.
 
 ## Détails du Service
 ### Sources
