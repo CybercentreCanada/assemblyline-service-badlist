@@ -154,9 +154,6 @@ class BadlistUpdateServer(ServiceUpdater):
             references = [r for r in references if re.match(FULL_URI, r)]
             badlist_items = []
 
-            # Normalize IOC values for when performing lookups
-            ioc_value = ioc_value.lower()
-
             # Build item for badlist
             badlist_item_base = {
                 "classification": default_classification,
@@ -188,7 +185,7 @@ class BadlistUpdateServer(ServiceUpdater):
                 badlist_item.update(
                     {
                         "type": "file",
-                        "hashes": {ioc_type: ioc_value},
+                        "hashes": {ioc_type: ioc_value.lower()},
                     }
                 )
                 badlist_items.append(badlist_item)
@@ -282,7 +279,9 @@ class BadlistUpdateServer(ServiceUpdater):
                                 # Get attribution
                                 attribution = sanitize_data(data.get(source_cfg.get("attribution")), type="attribution")
 
-                                campaign = sanitize_data(data.get(source_cfg.get("campaign")), type="campaign", validate=False)
+                                campaign = sanitize_data(
+                                    data.get(source_cfg.get("campaign")), type="campaign", validate=False
+                                )
 
                                 for ioc_type in NETWORK_IOC_TYPES + FILEHASH_TYPES:
                                     ioc_value = data.get(source_cfg.get(ioc_type))
