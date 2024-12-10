@@ -93,7 +93,7 @@ class BadlistUpdateServer(ServiceUpdater):
 
         return success
 
-    def import_update(self, files_sha256, source_name, default_classification):
+    def import_update(self, files_sha256, source_name, default_classification, configuration):
         blocklist_batch = []
 
         def sanitize_data(data: str, type: str, validate=True) -> List[str]:
@@ -194,7 +194,7 @@ class BadlistUpdateServer(ServiceUpdater):
             blocklist_batch.extend(badlist_items)
 
         try:
-            source_cfg = self._service.config["updater"][source_name]
+            source_cfg = configuration
         except KeyError as exc:
             raise ValueError(f"Source '{source_name}' not found in the service configuration") from exc
 
