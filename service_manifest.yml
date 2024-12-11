@@ -117,7 +117,7 @@ update_config:
         ip: ip_address
         domain: hostname
         malware_family: malware
-      update_interval: 300# Every 5 minutes
+      update_interval: 300 # Every 5 minutes
     - name: threatfox
       uri: https://threatfox.abuse.ch/export/csv/recent
       pattern: .*\/recent
