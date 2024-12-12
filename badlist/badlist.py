@@ -22,7 +22,7 @@ class Badlist(ServiceBase):
         # This is a map that allows us to override the default badlist scoring by source
         self.source_score_override = {
             source_name: int(config["score"])
-            for source_name, config in self.config.get("updater").items()
+            for source_name, config in self.config.get("updater", {}).items()
             if config.get("type") == "blocklist" and config.get("score")
         }
 
