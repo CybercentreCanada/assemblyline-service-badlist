@@ -49,78 +49,6 @@ config:
   lookup_ip: false
   lookup_domain: false
   lookup_url: false
-  updater:
-    phishunt:
-      type: blocklist
-      format: csv
-      uri: 0
-    urlhaus:
-      type: blocklist
-      format: csv
-      uri: 2
-      malware_family: 6
-      reference: 7
-      start: 9
-    blackbook:
-      type: blocklist
-      format: csv
-      domain: 0
-      malware_family: 1
-      start: 1
-    feodotracker:
-      type: blocklist
-      format: json
-      ip: ip_address
-      domain: hostname
-      malware_family: malware
-    threatfox:
-      type: blocklist
-      format: csv
-      dtl: 30
-      start: 9
-      ip: 2
-      domain: 2
-      uri: 2
-      sha1: 2
-      sha256: 2
-      md5: 2
-      malware_family: 5
-      reference: 10
-    malpedia:
-      type: malware_family_list
-      format: list
-    malpedia_attribution:
-      type: attribution_list
-      format: list
-    "threatview.io_C2_Hunt_Feed":
-      type: blocklist
-      format: csv
-      start: 3
-      ip: 0
-      domain: 2
-      reference: 5
-      default_attribution:
-        family: ["COBALT STRIKE"]
-    "threatview.io_IP_Blocklist":
-      type: blocklist
-      format: csv
-      ip: 0
-    "threatview.io_Domain_Blocklist":
-      type: blocklist
-      format: csv
-      domain: 0
-    "threatview.io_MD5_Hash_Blocklist":
-      type: blocklist
-      format: csv
-      md5: 0
-    "threatview.io_URL_Blocklist":
-      type: blocklist
-      format: csv
-      uri: 0
-    "threatview.io_SHA_Hash_Blocklist":
-      type: blocklist
-      format: csv
-      sha1: 0
 
 docker_config:
   image: ${REGISTRY}cccs/assemblyline-service-badlist:$SERVICE_TAG
@@ -144,41 +72,122 @@ update_config:
     - name: malpedia
       uri: https://malpedia.caad.fkie.fraunhofer.de/api/list/families?format=json
       pattern: .*\/families
+      configuration:
+        type: malware_family_list
+        format: list
     - name: malpedia_attribution
       uri: https://malpedia.caad.fkie.fraunhofer.de/api/list/actors?format=json
       pattern: .*\/actors
+      configuration:
+        type: attribution_list
+        format: list
     - name: phishunt
       uri: https://phishunt.io/feed.txt
       pattern: .*\/feed\.txt
+      configuration:
+        type: blocklist
+        format: csv
+        uri: 0
     - name: urlhaus
       uri: https://urlhaus.abuse.ch/downloads/csv
       pattern: .*\/csv\.txt$
+      configuration:
+        type: blocklist
+        format: csv
+        uri: 2
+        malware_family: 6
+        reference: 7
+        start: 9
+      update_interval: 300 # Every 5 minutes
     - name: blackbook
       uri: https://github.com/stamparm/blackbook.git
       pattern: .*\.csv$
+      configuration:
+        type: blocklist
+        format: csv
+        domain: 0
+        malware_family: 1
+        start: 1
     - name: feodotracker
       uri: https://feodotracker.abuse.ch/downloads/ipblocklist.json
       pattern: .*ipblocklist\.json
+      configuration:
+        type: blocklist
+        format: json
+        ip: ip_address
+        domain: hostname
+        malware_family: malware
+      update_interval: 300 # Every 5 minutes
     - name: threatfox
       uri: https://threatfox.abuse.ch/export/csv/recent
       pattern: .*\/recent
+      configuration:
+        type: blocklist
+        format: csv
+        dtl: 30
+        start: 9
+        ip: 2
+        domain: 2
+        uri: 2
+        sha1: 2
+        sha256: 2
+        md5: 2
+        malware_family: 5
+        reference: 10
+      update_interval: 300 # Every 5 minutes
     - name: "threatview.io_C2_Hunt_Feed"
       uri: https://threatview.io/Downloads/High-Confidence-CobaltStrike-C2%20-Feeds.txt
       pattern: .*\.txt
+      configuration:
+        type: blocklist
+        format: csv
+        start: 3
+        ip: 0
+        domain: 2
+        reference: 5
+        default_attribution:
+          family: ["COBALT STRIKE"]
+      update_interval: 86400 # Daily
     - name: "threatview.io_IP_Blocklist"
       uri: https://threatview.io/Downloads/IP-High-Confidence-Feed.txt
       pattern: .*\.txt
+      configuration:
+        type: blocklist
+        format: csv
+        ip: 0
+      update_interval: 86400 # Daily
     - name: "threatview.io_Domain_Blocklist"
       uri: https://threatview.io/Downloads/DOMAIN-High-Confidence-Feed.txt
       pattern: .*\.txt
+      configuration:
+        type: blocklist
+        format: csv
+        domain: 0
+      update_interval: 86400 # Daily
     - name: "threatview.io_MD5_Hash_Blocklist"
       uri: https://threatview.io/Downloads/MD5-HASH-ALL.txt
       pattern: .*\.txt
+      configuration:
+        type: blocklist
+        format: csv
+        md5: 0
+      update_interval: 86400 # Daily
     - name: "threatview.io_URL_Blocklist"
       uri: https://threatview.io/Downloads/URL-High-Confidence-Feed.txt
       pattern: .*\.txt
+      configuration:
+        type: blocklist
+        format: csv
+        uri: 0
+      update_interval: 86400 # Daily
     - name: "threatview.io_SHA_Hash_Blocklist"
       uri: https://threatview.io/Downloads/SHA-HASH-FEED.txt
       pattern: .*\.txt
+      configuration:
+        type: blocklist
+        format: csv
+        sha1: 0
+      update_interval: 86400 # Daily
+
   update_interval_seconds: 900 # Every 15 minutes
   wait_for_update: false
