@@ -1,10 +1,16 @@
 from collections import defaultdict
 
+from assemblyline_v4_service.common.base import ServiceBase
+from assemblyline_v4_service.common.result import (
+    Heuristic,
+    Result,
+    ResultOrderedKeyValueSection,
+    ResultSection,
+)
+
 from assemblyline.common import forge
 from assemblyline.common.isotime import epoch_to_iso, now
 from assemblyline.common.net import is_valid_ip
-from assemblyline_v4_service.common.base import ServiceBase
-from assemblyline_v4_service.common.result import Heuristic, Result, ResultOrderedKeyValueSection, ResultSection
 
 classification = forge.get_classification()
 
@@ -121,7 +127,8 @@ class Badlist(ServiceBase):
         # Check the list of tags as a batch
         badlisted_tags = self.api_interface.lookup_badlist_tags(request.task.tags)
         for badlisted in badlisted_tags:
-            if badlisted and badlisted["enabled"] and badlisted["type"] == "tag":
+            if badlisted and badlisted["enabled"] and badlisted["type"] == "tag" and \
+                badlisted["tag"]["value"] in tags[badlisted["tag"]["type"]]:
                 # Create the bad section
                 bad_ioc_section = ResultSection(badlisted["tag"]["value"])
 
