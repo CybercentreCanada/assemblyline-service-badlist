@@ -1,10 +1,16 @@
 from collections import defaultdict
 
+from assemblyline_v4_service.common.base import ServiceBase
+from assemblyline_v4_service.common.result import (
+    Heuristic,
+    Result,
+    ResultOrderedKeyValueSection,
+    ResultSection,
+)
+
 from assemblyline.common import forge
 from assemblyline.common.isotime import epoch_to_iso, now
 from assemblyline.common.net import is_valid_ip
-from assemblyline_v4_service.common.base import ServiceBase
-from assemblyline_v4_service.common.result import Heuristic, Result, ResultOrderedKeyValueSection, ResultSection
 
 classification = forge.get_classification()
 
@@ -95,23 +101,18 @@ class Badlist(ServiceBase):
 
         # Add the uri file type data as potential tags to check
         tags = request.task.tags
-        tags.setdefault("network.static.domain", [])
-        tags.setdefault("network.dynamic.domain", [])
+        for net_type in ["ip", "domain", "uri"]:
+            tags.setdefault(f"network.static.{net_type}", [])
+            tags.setdefault(f"network.dynamic.{net_type}", [])
         if request.file_type.startswith("uri/") and request.task.fileinfo.uri_info:
-            tags.setdefault("network.static.uri", [])
-            tags.setdefault("network.dynamic.uri", [])
             tags["network.static.uri"].append(request.task.fileinfo.uri_info.uri)
-            tags["network.dynamic.uri"].append(request.task.fileinfo.uri_info.uri)
 
             if is_valid_ip(request.task.fileinfo.uri_info.hostname):
                 net_type = "ip"
             else:
                 net_type = "domain"
 
-            tags.setdefault(f"network.static.{net_type}", [])
-            tags.setdefault(f"network.dynamic.{net_type}", [])
             tags[f"network.static.{net_type}"].append(request.task.fileinfo.uri_info.hostname)
-            tags[f"network.dynamic.{net_type}"].append(request.task.fileinfo.uri_info.hostname)
 
         # Filter out email domains from network domains before checking blocklist for hits
         email_domains = set([x.split("@", 1)[1] for x in tags.get("network.email.address", [])])
@@ -121,7 +122,8 @@ class Badlist(ServiceBase):
         # Check the list of tags as a batch
         badlisted_tags = self.api_interface.lookup_badlist_tags(request.task.tags)
         for badlisted in badlisted_tags:
-            if badlisted and badlisted["enabled"] and badlisted["type"] == "tag":
+            if badlisted and badlisted["enabled"] and badlisted["type"] == "tag" and \
+                badlisted["tag"]["value"] in tags[badlisted["tag"]["type"]]:
                 # Create the bad section
                 bad_ioc_section = ResultSection(badlisted["tag"]["value"])
 
