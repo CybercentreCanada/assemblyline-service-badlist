@@ -8,14 +8,14 @@
     ],
     "editor.tabSize": 4,
     "editor.wordWrap": "wordWrapColumn",
-    "editor.wordWrapColumn": 180,
+    "editor.wordWrapColumn": 120,
     "files.insertFinalNewline": true,
     "files.trimFinalNewlines": true,
     "files.trimTrailingWhitespace": true,
     "isort.args": [
         "-l",
         "120",
-        "--profile=black"
+        "--profile=black",
         // "--src=${workspaceFolder}"
     ],
     "[python]": {
@@ -29,8 +29,4 @@
         //Added the ignore of E203 for now : https://github.com/PyCQA/pycodestyle/issues/373
         "--ignore=E203,W503"
     ],
-    "autopep8.args": [
-        "--max-line-length=120",
-    ],
-    "python.testing.pytestEnabled": true,
 }

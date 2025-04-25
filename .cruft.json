@@ -1,0 +1,24 @@
+{
+  "template": "https://github.com/CybercentreCanada/assemblyline-service-template.git",
+  "commit": "fe8035cde942a2c013295a32f8accaa473dd836d",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "service_name": "badlist",
+      "__svc_name": "badlist",
+      "__repository": "assemblyline-service-badlist",
+      "__pkg_name": "badlist",
+      "class_name": "Badlist",
+      "short_description": "This service interfaces with Assemblyline's Badlist to mark tags or files as malicious.",
+      "short_description_fr": "Ce service interface avec la liste mauvaise d'Assemblyline pour marquer les tags ou les fichiers comme malveillants.",
+      "stage": "REVIEW",
+      "category": "Static Analysis",
+      "org_name_full": "CybercentreCanada",
+      "org_name_short": "cccs",
+      "license": "mit",
+      "_template": "https://github.com/CybercentreCanada/assemblyline-service-template.git",
+      "_commit": "fe8035cde942a2c013295a32f8accaa473dd836d"
+    }
+  },
+  "directory": null
+}
