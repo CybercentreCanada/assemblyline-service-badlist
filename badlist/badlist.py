@@ -1,5 +1,6 @@
-from collections import defaultdict
-
+from assemblyline.common import forge
+from assemblyline.common.isotime import epoch_to_iso, now
+from assemblyline.common.net import is_valid_ip
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.result import (
     Heuristic,
@@ -7,10 +8,6 @@ from assemblyline_v4_service.common.result import (
     ResultOrderedKeyValueSection,
     ResultSection,
 )
-
-from assemblyline.common import forge
-from assemblyline.common.isotime import epoch_to_iso, now
-from assemblyline.common.net import is_valid_ip
 
 classification = forge.get_classification()
 
@@ -68,7 +65,9 @@ class Badlist(ServiceBase):
                 bad_file_section = ResultSection(
                     f"{qhash} hash was found in the list of bad files",
                     heuristic=Heuristic(1),
-                    classification=data.get("classification", classification.UNRESTRICTED),
+                    classification=data.get(
+                        "classification", classification.UNRESTRICTED
+                    ),
                 )
 
                 # Add attribution tags
@@ -92,7 +91,9 @@ class Badlist(ServiceBase):
                         ResultSection(
                             msg,
                             body="\n".join(source["reason"]),
-                            classification=source.get("classification", classification.UNRESTRICTED),
+                            classification=source.get(
+                                "classification", classification.UNRESTRICTED
+                            ),
                         )
                     )
 
@@ -112,18 +113,30 @@ class Badlist(ServiceBase):
             else:
                 net_type = "domain"
 
-            tags[f"network.static.{net_type}"].append(request.task.fileinfo.uri_info.hostname)
+            tags[f"network.static.{net_type}"].append(
+                request.task.fileinfo.uri_info.hostname
+            )
 
         # Filter out email domains from network domains before checking blocklist for hits
-        email_domains = set([x.split("@", 1)[1] for x in tags.get("network.email.address", [])])
-        tags["network.static.domain"] = list(set(tags["network.static.domain"]) - email_domains)
-        tags["network.dynamic.domain"] = list(set(tags["network.dynamic.domain"]) - email_domains)
+        email_domains = set(
+            [x.split("@", 1)[1] for x in tags.get("network.email.address", [])]
+        )
+        tags["network.static.domain"] = list(
+            set(tags["network.static.domain"]) - email_domains
+        )
+        tags["network.dynamic.domain"] = list(
+            set(tags["network.dynamic.domain"]) - email_domains
+        )
 
         # Check the list of tags as a batch
         badlisted_tags = self.api_interface.lookup_badlist_tags(request.task.tags)
         for badlisted in badlisted_tags:
-            if badlisted and badlisted["enabled"] and badlisted["type"] == "tag" and \
-                badlisted["tag"]["value"] in tags[badlisted["tag"]["type"]]:
+            if (
+                badlisted
+                and badlisted["enabled"]
+                and badlisted["type"] == "tag"
+                and badlisted["tag"]["value"] in tags[badlisted["tag"]["type"]]
+            ):
                 # Create the bad section
                 bad_ioc_section = ResultSection(badlisted["tag"]["value"])
 
@@ -149,7 +162,9 @@ class Badlist(ServiceBase):
                     ResultOrderedKeyValueSection(
                         title_text="Metadata",
                         body=metadata_body,
-                        classification=badlisted.get("classification", classification.UNRESTRICTED),
+                        classification=badlisted.get(
+                            "classification", classification.UNRESTRICTED
+                        ),
                         tags={badlisted["tag"]["type"]: [badlisted["tag"]["value"]]},
                     )
                 )
@@ -163,14 +178,22 @@ class Badlist(ServiceBase):
                         signatures[source["name"]] = 1
                         msg = f"External source '{source['name']}' deems the tag as bad"
 
-                    source_classfication = source.pop("classification", classification.UNRESTRICTED)
+                    source_classfication = source.pop(
+                        "classification", classification.UNRESTRICTED
+                    )
                     bad_ioc_section.add_subsection(
                         ResultOrderedKeyValueSection(
                             msg,
                             body=source,
                             classification=source_classfication,
-                            heuristic=Heuristic(2, score_map=self.source_score_override, signatures=signatures),
-                            tags={badlisted["tag"]["type"]: [badlisted["tag"]["value"]]},
+                            heuristic=Heuristic(
+                                2,
+                                score_map=self.source_score_override,
+                                signatures=signatures,
+                            ),
+                            tags={
+                                badlisted["tag"]["type"]: [badlisted["tag"]["value"]]
+                            },
                         )
                     )
 
@@ -179,11 +202,15 @@ class Badlist(ServiceBase):
 
                 # If this is a URI and we have confidence that it is bad, extract as an extracted file
                 if badlisted["tag"]["type"].endswith("uri"):
-                    request.add_extracted_uri("URI found in badlist", badlisted["tag"]["value"])
+                    request.add_extracted_uri(
+                        "URI found in badlist", badlisted["tag"]["value"]
+                    )
 
         # Check for similarity hashes ssdeep
         for hash_type in similar_hash_types:
-            similar_hashes = self.similar_api_map[hash_type](request.task.fileinfo[hash_type])
+            similar_hashes = self.similar_api_map[hash_type](
+                request.task.fileinfo[hash_type]
+            )
             for similar in similar_hashes:
                 if (
                     similar
@@ -191,18 +218,27 @@ class Badlist(ServiceBase):
                     and similar["type"] == "file"
                     and similar["hashes"]["sha256"] != request.sha256
                 ):
-
                     # Create the similar section
                     similar_section = ResultOrderedKeyValueSection(
                         f"{hash_type.upper()} similarity match: A similar file in the system matches this file",
                         heuristic=Heuristic(3),
-                        classification=similar.get("classification", classification.UNRESTRICTED),
+                        classification=similar.get(
+                            "classification", classification.UNRESTRICTED
+                        ),
                     )
                     similar_section.add_item("md5", similar["hashes"].get("md5", None))
-                    similar_section.add_item("sha1", similar["hashes"].get("sha1", None))
-                    similar_section.add_item("sha256", similar["hashes"].get("sha256", None))
-                    similar_section.add_item("ssdeep", similar["hashes"].get("ssdeep", None))
-                    similar_section.add_item("tlsh", similar["hashes"].get("tlsh", None))
+                    similar_section.add_item(
+                        "sha1", similar["hashes"].get("sha1", None)
+                    )
+                    similar_section.add_item(
+                        "sha256", similar["hashes"].get("sha256", None)
+                    )
+                    similar_section.add_item(
+                        "ssdeep", similar["hashes"].get("ssdeep", None)
+                    )
+                    similar_section.add_item(
+                        "tlsh", similar["hashes"].get("tlsh", None)
+                    )
                     similar_section.add_item("size", similar["file"].get("size", None))
                     similar_section.add_item("type", similar["file"].get("type", None))
 
@@ -227,7 +263,9 @@ class Badlist(ServiceBase):
                             ResultSection(
                                 msg,
                                 body="\n".join(source["reason"]),
-                                classification=similar.get("classification", classification.UNRESTRICTED),
+                                classification=similar.get(
+                                    "classification", classification.UNRESTRICTED
+                                ),
                             )
                         )
 

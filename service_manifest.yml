@@ -188,6 +188,19 @@ update_config:
         format: csv
         sha1: 0
       update_interval: 86400 # Daily
+    - name: Google
+      uri: https://github.com/google/threat-team.git
+      pattern: .*\.csv
+      configuration:
+        type: blocklist
+        format: csv
+        ip: 0
+        domain: 0
+        uri: 0
+        sha256: 0
+        reference: 2
+      update_interval: 86400 # Daily
+
 
   update_interval_seconds: 900 # Every 15 minutes
   wait_for_update: false
