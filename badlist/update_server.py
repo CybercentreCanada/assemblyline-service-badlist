@@ -59,7 +59,8 @@ class BadlistUpdateServer(ServiceUpdater):
             [
                 self.update_queue.put(_s.name)
                 for _s in self._service.update_config.sources
-                if self._service.config["updater"][_s.name]["type"] == "attribution_list"
+                if self._service.config["updater"][_s.name]["type"]
+                == "attribution_list"
             ]
 
         if not self.malware_families:
@@ -67,7 +68,8 @@ class BadlistUpdateServer(ServiceUpdater):
             [
                 self.update_queue.put(_s.name)
                 for _s in self._service.update_config.sources
-                if self._service.config["updater"][_s.name]["type"] == "malware_family_list"
+                if self._service.config["updater"][_s.name]["type"]
+                == "malware_family_list"
             ]
 
         blocklist_sources = set(
@@ -79,7 +81,9 @@ class BadlistUpdateServer(ServiceUpdater):
         )
 
         missing_blocklists = {
-            s for s in blocklist_sources if self.datastore.badlist.search(f"sources.name:{s}", rows=0)["total"] == 0
+            s
+            for s in blocklist_sources
+            if self.datastore.badlist.search(f"sources.name:{s}", rows=0)["total"] == 0
         }
 
         if missing_blocklists != blocklist_sources:
@@ -93,7 +97,9 @@ class BadlistUpdateServer(ServiceUpdater):
 
         return success
 
-    def import_update(self, files_sha256, source_name, default_classification, configuration):
+    def import_update(
+        self, files_sha256, source_name, default_classification, configuration
+    ):
         blocklist_batch = []
 
         def sanitize_data(data: str, type: str, validate=True) -> List[str]:
@@ -102,7 +108,13 @@ class BadlistUpdateServer(ServiceUpdater):
 
             # Normalize data (parsing based off Malpedia API output)
             data = data.split(".", 1)[-1]
-            data = data.replace("-", "").replace("_", "").replace("#", "").replace('"', "").upper()
+            data = (
+                data.replace("-", "")
+                .replace("_", "")
+                .replace("#", "")
+                .replace('"', "")
+                .upper()
+            )
             data = data.split(",") if "," in data else [data]
 
             if not validate:
@@ -141,12 +153,17 @@ class BadlistUpdateServer(ServiceUpdater):
                     # Check if your computed expiry time will be greater than the one set already
                     new_expiry_ts = now(float(source_cfg["dtl"]) * 24 * 3600)
                     qhash = self.client.badlist._preprocess_object(bl_item)
-                    ds_item = self.client.datastore.badlist.get_if_exists(qhash, as_obj=False)
+                    ds_item = self.client.datastore.badlist.get_if_exists(
+                        qhash, as_obj=False
+                    )
                     # If the item doesn't exist, doesn't have an expiry, or will expire sooner than what's configured by the source
                     if (
                         not ds_item
-                        or ds_item.get("expiry_ts") == None
-                        or (ds_item.get("expiry_ts") and iso_to_epoch(ds_item["expiry_ts"]) < new_expiry_ts)
+                        or ds_item.get("expiry_ts") is None
+                        or (
+                            ds_item.get("expiry_ts")
+                            and iso_to_epoch(ds_item["expiry_ts"]) < new_expiry_ts
+                        )
                     ):
                         # Set the DTL based on the configured value for the source
                         bl_item["dtl"] = int(source_cfg["dtl"])
@@ -161,7 +178,8 @@ class BadlistUpdateServer(ServiceUpdater):
                     {
                         "classification": default_classification,
                         "name": source_name,
-                        "reason": ["IOC was reported by source as malicious"] + references,
+                        "reason": ["IOC was reported by source as malicious"]
+                        + references,
                         "type": "external",
                     }
                 ],
@@ -175,7 +193,10 @@ class BadlistUpdateServer(ServiceUpdater):
                         badlist_item.update(
                             {
                                 "type": "tag",
-                                "tag": {"type": f"network.{network_type}.{ioc_type}", "value": ioc_value},
+                                "tag": {
+                                    "type": f"network.{network_type}.{ioc_type}",
+                                    "value": ioc_value,
+                                },
                             }
                         )
                         badlist_items.append(badlist_item)
@@ -196,7 +217,9 @@ class BadlistUpdateServer(ServiceUpdater):
         try:
             source_cfg = configuration
         except KeyError as exc:
-            raise ValueError(f"Source '{source_name}' not found in the service configuration") from exc
+            raise ValueError(
+                f"Source '{source_name}' not found in the service configuration"
+            ) from exc
 
         if source_cfg["type"] == "blocklist":
             # This source is meant to contribute to the blocklist
@@ -211,27 +234,43 @@ class BadlistUpdateServer(ServiceUpdater):
                                 continue
                             row = [r.strip(' "') for r in row]
                             joined_row = ",".join(row)
-                            if any(t in joined_row for t in ignore_terms) or joined_row.startswith("#"):
+                            if any(
+                                t in joined_row for t in ignore_terms
+                            ) or joined_row.startswith("#"):
                                 # Skip row
                                 continue
 
-                            references = [] if source_cfg.get("reference") is None else [row[source_cfg["reference"]]]
+                            references = (
+                                []
+                                if source_cfg.get("reference") is None
+                                or source_cfg["reference"] >= len(row)
+                                else [row[source_cfg["reference"]]]
+                            )
                             # Get malware family
                             malware_family = (
-                                sanitize_data(row[source_cfg["malware_family"]], type="malware_family")
+                                sanitize_data(
+                                    row[source_cfg["malware_family"]],
+                                    type="malware_family",
+                                )
                                 if source_cfg.get("malware_family") is not None
                                 else []
                             )
 
                             # Get attribution
                             attribution = (
-                                sanitize_data(row[source_cfg["attribution"]], type="attribution")
+                                sanitize_data(
+                                    row[source_cfg["attribution"]], type="attribution"
+                                )
                                 if source_cfg.get("attribution") is not None
                                 else []
                             )
 
                             campaign = (
-                                sanitize_data(row[source_cfg["campaign"]], type="campaign", validate=False)
+                                sanitize_data(
+                                    row[source_cfg["campaign"]],
+                                    type="campaign",
+                                    validate=False,
+                                )
                                 if source_cfg.get("campaign") is not None
                                 else []
                             )
@@ -256,9 +295,10 @@ class BadlistUpdateServer(ServiceUpdater):
                                     attribution,
                                     campaign,
                                     references,
-                                    bl_type="tag" if ioc_type in NETWORK_IOC_TYPES else "file",
+                                    bl_type="tag"
+                                    if ioc_type in NETWORK_IOC_TYPES
+                                    else "file",
                                 )
-
             elif source_cfg["format"] == "json":
                 for file, _ in files_sha256:
                     with open(file, "r") as fp:
@@ -270,17 +310,25 @@ class BadlistUpdateServer(ServiceUpdater):
                                     # Skip block
                                     continue
                                 references = (
-                                    [] if not source_cfg.get("reference") else [data.get(source_cfg.get("reference"))]
+                                    []
+                                    if not source_cfg.get("reference")
+                                    else [data.get(source_cfg.get("reference"))]
                                 )
                                 malware_family = sanitize_data(
-                                    data.get(source_cfg.get("malware_family")), type="malware_family"
+                                    data.get(source_cfg.get("malware_family")),
+                                    type="malware_family",
                                 )
 
                                 # Get attribution
-                                attribution = sanitize_data(data.get(source_cfg.get("attribution")), type="attribution")
+                                attribution = sanitize_data(
+                                    data.get(source_cfg.get("attribution")),
+                                    type="attribution",
+                                )
 
                                 campaign = sanitize_data(
-                                    data.get(source_cfg.get("campaign")), type="campaign", validate=False
+                                    data.get(source_cfg.get("campaign")),
+                                    type="campaign",
+                                    validate=False,
                                 )
 
                                 for ioc_type in NETWORK_IOC_TYPES + FILEHASH_TYPES:
@@ -293,7 +341,9 @@ class BadlistUpdateServer(ServiceUpdater):
                                             attribution,
                                             campaign,
                                             references,
-                                            bl_type="tag" if ioc_type in NETWORK_IOC_TYPES else "file",
+                                            bl_type="tag"
+                                            if ioc_type in NETWORK_IOC_TYPES
+                                            else "file",
                                         )
             if blocklist_batch:
                 self.client.badlist.add_update_many(blocklist_batch)
