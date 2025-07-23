@@ -200,7 +200,15 @@ update_config:
         sha256: 0
         reference: 2
       update_interval: 86400 # Daily
-
+    - name: hagezi
+      uri: https://raw.githubusercontent.com/hagezi/dns-blocklists/main/domains/tif.txt
+      pattern: .*tif\.txt
+      configuration:
+        type: blocklist
+        format: csv
+        domain: 0
+        dtl: 1
+      update_interval: 86400 # Daily
 
   update_interval_seconds: 900 # Every 15 minutes
   wait_for_update: false
