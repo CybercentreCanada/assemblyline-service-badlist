@@ -173,10 +173,10 @@ class Badlist(ServiceBase):
                 for source in badlisted["sources"]:
                     signatures = {}
                     if source["type"] == "user":
-                        msg = f"User '{source['name']}' deemed the tag as bad"
+                        msg = f"User '{source['name']}' deemed \"{badlisted['tag']['value']}\" as bad"
                     else:
                         signatures[source["name"]] = 1
-                        msg = f"External source '{source['name']}' deems the tag as bad"
+                        msg = f"External source '{source['name']}' deems \"{badlisted['tag']['value']}\" as bad"
 
                     source_classfication = source.pop(
                         "classification", classification.UNRESTRICTED
