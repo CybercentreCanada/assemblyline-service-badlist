@@ -285,9 +285,17 @@ class BadlistUpdateServer(ServiceUpdater):
                                     # Ensure port information is not included
                                     ioc_value = ioc_value.split(":", 1)[0]
 
+                                if ioc_type in NETWORK_IOC_TYPES:
+                                    # Ensure IOC is defanged before performing validation checks
+                                    ioc_value = ioc_value.replace("[.]", ".")
+
                                 # If there are multiple IOC types in the same column, verify the IOC type
                                 if not IOC_CHECK[ioc_type](ioc_value):
                                     continue
+                                # Doubly make sure this isn't an IP
+                                if ioc_type == "domain" and IOC_CHECK["ip"](ioc_value):
+                                    continue
+
                                 update_blocklist(
                                     ioc_type,
                                     ioc_value,
