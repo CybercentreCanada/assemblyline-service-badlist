@@ -43,6 +43,7 @@ config:
       type: blocklist
       format: csv
       uri: 2
+      delimiter: ","
 ```
 
 Similarly, if you're dealing with a JSON list (`[{}, {}, ...]`) and you know to find `uri`s under the key `bad_uri` in each record:
@@ -115,13 +116,13 @@ Il existe également plusieurs types de sources pour ce service :
  - liste d'attribution
 
 #### Formats de données de la Liste de Blocage
-Pour que le service puisse extraire les bons tags et les catégoriser par source, vous devrez lui indiquer comment le faire en utilisant la clé `config.updater.<source>`. 
+Pour que le service puisse extraire les bons tags et les catégoriser par source, vous devrez lui indiquer comment le faire en utilisant la clé `config.updater.<source>`.
 
 Dans chaque structure de données `source`, vous spécifierez le type de source (blocklist) ainsi que le format (`json` | `csv`).
 
 Vous devrez également spécifier les différents types de tags (`domain`, `ip`, `uri`, `md5`, `sha1`, `sha256`, `ssdeep`, `tlsh`) que vous vous attendez à trouver dans les données et où.
 
-Par exemple, si vous utilisez un fichier CSV et que vous vous attendez à trouver des `uri` dans la 3ème colonne: 
+Par exemple, si vous utilisez un fichier CSV et que vous vous attendez à trouver des `uri` dans la 3ème colonne:
 
 `<date>,<nom>,https://google.com,...`
 
@@ -133,8 +134,9 @@ config:
       type: blocklist
       format: csv
       uri: 2
+      delimiter: ","
 ```
-De même, si vous utilisez une liste JSON (`[{}, {}, ...]`) et que vous avez des `uri` sous la clé `bad_uri` dans chaque entrée : 
+De même, si vous utilisez une liste JSON (`[{}, {}, ...]`) et que vous avez des `uri` sous la clé `bad_uri` dans chaque entrée :
 
 `{"bad_uri": "https://google.com", "family": "bad_stuff", ...}`
 
@@ -149,7 +151,7 @@ config:
 Vous pouvez également remplacer le score par défaut d'Assemblyline pour les éléments trouvés dans la liste mauvaise (1000 points) en fournissant un `score` par source.
 
 #### Expiration Automatisée
-Par défaut, nous supposons que tous les éléments ajoutés à la liste noire seront valides pour toujours, mais ce n'est pas toujours le cas. Vous pourrez également définir une période d'expiration pour les éléments appartenant à une source en utilisant `dtl` (`days to live`, ou jours à vivre en anglais). 
+Par défaut, nous supposons que tous les éléments ajoutés à la liste noire seront valides pour toujours, mais ce n'est pas toujours le cas. Vous pourrez également définir une période d'expiration pour les éléments appartenant à une source en utilisant `dtl` (`days to live`, ou jours à vivre en anglais).
 
 S'il y a plusieurs sources avec des expirations configurées contenant un même élément, la date d'expiration sera prolongée à la date d'expiration la plus lointaine au moment de l'importation.
 

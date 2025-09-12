@@ -228,7 +228,9 @@ class BadlistUpdateServer(ServiceUpdater):
                 start_index = source_cfg.get("start", 0)
                 for file, _ in files_sha256:
                     with open(file, "r") as fp:
-                        for row in list(csv.reader(fp, delimiter=","))[start_index:]:
+                        for row in list(
+                            csv.reader(fp, delimiter=source_cfg.get("delimiter", ","))
+                        )[start_index:]:
                             if not row:
                                 # If no data in row, skip
                                 continue
