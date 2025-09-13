@@ -33,6 +33,7 @@ IOC_CHECK = {
 
 NETWORK_IOC_TYPES = ["ip", "domain", "uri"]
 FILEHASH_TYPES = ["sha256", "sha1", "md5", "ssdeep", "tlsh"]
+HOSTS_FILE_REGEX = re.compile(r"0\.0\.0\.0\s(.+)")
 
 
 class SetEncoder(json.JSONEncoder):
@@ -128,11 +129,11 @@ class BadlistUpdateServer(ServiceUpdater):
         def update_blocklist(
             ioc_type: str,
             ioc_value: str,
-            malware_family: List[str],
-            attribution: List[str],
-            campaign: List[str],
-            references: List[str],
             bl_type: str,
+            malware_family: List[str] = [],
+            attribution: List[str] = [],
+            campaign: List[str] = [],
+            references: List[str] = [],
         ):
             def prepare_item(bl_item):
                 # See if there's any attribution details we can add to the item before adding to the list
@@ -224,7 +225,12 @@ class BadlistUpdateServer(ServiceUpdater):
         if source_cfg["type"] == "blocklist":
             # This source is meant to contribute to the blocklist
             ignore_terms = source_cfg.get("ignore_terms", [])
-            if source_cfg["format"] == "csv":
+            if source_cfg["format"] == "hosts":
+                for file, _ in files_sha256:
+                    with open(file, "r") as fp:
+                        for match in re.finditer(HOSTS_FILE_REGEX, fp.read()):
+                            update_blocklist("domain", match.group(1), bl_type="tag")
+            elif source_cfg["format"] == "csv":
                 start_index = source_cfg.get("start", 0)
                 for file, _ in files_sha256:
                     with open(file, "r") as fp:
@@ -301,13 +307,11 @@ class BadlistUpdateServer(ServiceUpdater):
                                 update_blocklist(
                                     ioc_type,
                                     ioc_value,
+                                    "tag" if ioc_type in NETWORK_IOC_TYPES else "file",
                                     malware_family,
                                     attribution,
                                     campaign,
                                     references,
-                                    bl_type="tag"
-                                    if ioc_type in NETWORK_IOC_TYPES
-                                    else "file",
                                 )
             elif source_cfg["format"] == "json":
                 for file, _ in files_sha256:
@@ -347,13 +351,13 @@ class BadlistUpdateServer(ServiceUpdater):
                                         update_blocklist(
                                             ioc_type,
                                             ioc_value,
+                                            "tag"
+                                            if ioc_type in NETWORK_IOC_TYPES
+                                            else "file",
                                             malware_family,
                                             attribution,
                                             campaign,
                                             references,
-                                            bl_type="tag"
-                                            if ioc_type in NETWORK_IOC_TYPES
-                                            else "file",
                                         )
             if blocklist_batch:
                 self.client.badlist.add_update_many(blocklist_batch)

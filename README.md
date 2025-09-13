@@ -15,6 +15,7 @@ This service interfaces with Assemblyline's Badlist to mark tags or files as mal
 
 When adding sources to the service, there are two types of expected data formats
 - csv
+- hosts
 - json
 
 There are also multiple types of sources for this service:
@@ -57,6 +58,15 @@ config:
       type: blocklist
       format: json
       uri: "bad_uri"
+```
+
+Using hosts files are pretty simple and doesn't involve a lot of configuration:
+```yaml
+config:
+  updater:
+    my_source:
+      type: blocklist
+      format: hosts
 ```
 
 You can also override Assemblyline's default scoring of badlist matches (1000 points) by providing a `score` per source.
@@ -108,6 +118,7 @@ Ce service interface avec la liste mauvaise d'Assemblyline pour marquer les tags
 ### Sources
 Lors de l'ajout de sources au service, il existe deux types de formats de données attendus
 - csv
+- hosts
 - json
 
 Il existe également plusieurs types de sources pour ce service :
@@ -148,6 +159,17 @@ config:
       format: json
       uri: "bad_uri"
 ```
+
+L'utilisation des fichiers hosts est assez simple et ne nécessite pas beaucoup de configuration:
+
+```yaml
+config:
+  updater:
+    my_source:
+      type: blocklist
+      format: hosts
+```
+
 Vous pouvez également remplacer le score par défaut d'Assemblyline pour les éléments trouvés dans la liste mauvaise (1000 points) en fournissant un `score` par source.
 
 #### Expiration Automatisée
