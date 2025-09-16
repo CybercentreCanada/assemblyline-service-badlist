@@ -33,6 +33,7 @@ IOC_CHECK = {
 
 NETWORK_IOC_TYPES = ["ip", "domain", "uri"]
 FILEHASH_TYPES = ["sha256", "sha1", "md5", "ssdeep", "tlsh"]
+HOSTS_FILE_REGEX = re.compile(r"0\.0\.0\.0\s(.+)")
 
 
 class SetEncoder(json.JSONEncoder):
@@ -80,11 +81,13 @@ class BadlistUpdateServer(ServiceUpdater):
             ]
         )
 
-        missing_blocklists = {
-            s
-            for s in blocklist_sources
-            if self.datastore.badlist.search(f"sources.name:{s}", rows=0)["total"] == 0
-        }
+        missing_blocklists = blocklist_sources - set(
+            self.datastore.badlist.facet(
+                "sources.name",
+                "sources.type:external",
+                size=len(self._service.update_config.sources),
+            ).keys()
+        )
 
         if missing_blocklists != blocklist_sources:
             # We have at least one blocklist source to work with for the time being
@@ -128,11 +131,11 @@ class BadlistUpdateServer(ServiceUpdater):
         def update_blocklist(
             ioc_type: str,
             ioc_value: str,
-            malware_family: List[str],
-            attribution: List[str],
-            campaign: List[str],
-            references: List[str],
             bl_type: str,
+            malware_family: List[str] = [],
+            attribution: List[str] = [],
+            campaign: List[str] = [],
+            references: List[str] = [],
         ):
             def prepare_item(bl_item):
                 # See if there's any attribution details we can add to the item before adding to the list
@@ -224,11 +227,18 @@ class BadlistUpdateServer(ServiceUpdater):
         if source_cfg["type"] == "blocklist":
             # This source is meant to contribute to the blocklist
             ignore_terms = source_cfg.get("ignore_terms", [])
-            if source_cfg["format"] == "csv":
+            if source_cfg["format"] == "hosts":
+                for file, _ in files_sha256:
+                    with open(file, "r") as fp:
+                        for match in re.finditer(HOSTS_FILE_REGEX, fp.read()):
+                            update_blocklist("domain", match.group(1), bl_type="tag")
+            elif source_cfg["format"] == "csv":
                 start_index = source_cfg.get("start", 0)
                 for file, _ in files_sha256:
                     with open(file, "r") as fp:
-                        for row in list(csv.reader(fp, delimiter=","))[start_index:]:
+                        for row in list(
+                            csv.reader(fp, delimiter=source_cfg.get("delimiter", ","))
+                        )[start_index:]:
                             if not row:
                                 # If no data in row, skip
                                 continue
@@ -285,19 +295,25 @@ class BadlistUpdateServer(ServiceUpdater):
                                     # Ensure port information is not included
                                     ioc_value = ioc_value.split(":", 1)[0]
 
+                                if ioc_type in NETWORK_IOC_TYPES:
+                                    # Ensure IOC is defanged before performing validation checks
+                                    ioc_value = ioc_value.replace("[.]", ".")
+
                                 # If there are multiple IOC types in the same column, verify the IOC type
                                 if not IOC_CHECK[ioc_type](ioc_value):
                                     continue
+                                # Doubly make sure this isn't an IP
+                                if ioc_type == "domain" and IOC_CHECK["ip"](ioc_value):
+                                    continue
+
                                 update_blocklist(
                                     ioc_type,
                                     ioc_value,
+                                    "tag" if ioc_type in NETWORK_IOC_TYPES else "file",
                                     malware_family,
                                     attribution,
                                     campaign,
                                     references,
-                                    bl_type="tag"
-                                    if ioc_type in NETWORK_IOC_TYPES
-                                    else "file",
                                 )
             elif source_cfg["format"] == "json":
                 for file, _ in files_sha256:
@@ -305,46 +321,60 @@ class BadlistUpdateServer(ServiceUpdater):
                         blocklist_data = json.load(fp)
                         if isinstance(blocklist_data, list):
                             for data in blocklist_data:
-                                json_dump = json.dumps(data)
-                                if any(t in json_dump for t in ignore_terms):
-                                    # Skip block
-                                    continue
-                                references = (
-                                    []
-                                    if not source_cfg.get("reference")
-                                    else [data.get(source_cfg.get("reference"))]
-                                )
-                                malware_family = sanitize_data(
-                                    data.get(source_cfg.get("malware_family")),
-                                    type="malware_family",
-                                )
+                                if isinstance(data, dict):
+                                    # Structured data
+                                    json_dump = json.dumps(data)
+                                    if any(t in json_dump for t in ignore_terms):
+                                        # Skip block
+                                        continue
+                                    references = (
+                                        []
+                                        if not source_cfg.get("reference")
+                                        else [data.get(source_cfg.get("reference"))]
+                                    )
+                                    malware_family = sanitize_data(
+                                        data.get(source_cfg.get("malware_family")),
+                                        type="malware_family",
+                                    )
 
-                                # Get attribution
-                                attribution = sanitize_data(
-                                    data.get(source_cfg.get("attribution")),
-                                    type="attribution",
-                                )
+                                    # Get attribution
+                                    attribution = sanitize_data(
+                                        data.get(source_cfg.get("attribution")),
+                                        type="attribution",
+                                    )
 
-                                campaign = sanitize_data(
-                                    data.get(source_cfg.get("campaign")),
-                                    type="campaign",
-                                    validate=False,
-                                )
+                                    campaign = sanitize_data(
+                                        data.get(source_cfg.get("campaign")),
+                                        type="campaign",
+                                        validate=False,
+                                    )
 
-                                for ioc_type in NETWORK_IOC_TYPES + FILEHASH_TYPES:
-                                    ioc_value = data.get(source_cfg.get(ioc_type))
-                                    if ioc_value:
-                                        update_blocklist(
-                                            ioc_type,
-                                            ioc_value,
-                                            malware_family,
-                                            attribution,
-                                            campaign,
-                                            references,
-                                            bl_type="tag"
-                                            if ioc_type in NETWORK_IOC_TYPES
-                                            else "file",
-                                        )
+                                    for ioc_type in NETWORK_IOC_TYPES + FILEHASH_TYPES:
+                                        ioc_value = data.get(source_cfg.get(ioc_type))
+                                        if ioc_value:
+                                            update_blocklist(
+                                                ioc_type,
+                                                ioc_value,
+                                                "tag"
+                                                if ioc_type in NETWORK_IOC_TYPES
+                                                else "file",
+                                                malware_family,
+                                                attribution,
+                                                campaign,
+                                                references,
+                                            )
+                                elif isinstance(data, str):
+                                    # Simple list of strings
+                                    for ioc_type in NETWORK_IOC_TYPES + FILEHASH_TYPES:
+                                        if IOC_CHECK[ioc_type](data):
+                                            update_blocklist(
+                                                ioc_type,
+                                                data,
+                                                "tag"
+                                                if ioc_type in NETWORK_IOC_TYPES
+                                                else "file",
+                                            )
+
             if blocklist_batch:
                 self.client.badlist.add_update_many(blocklist_batch)
 
