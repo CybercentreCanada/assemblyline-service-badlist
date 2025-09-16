@@ -81,11 +81,13 @@ class BadlistUpdateServer(ServiceUpdater):
             ]
         )
 
-        missing_blocklists = {
-            s
-            for s in blocklist_sources
-            if self.datastore.badlist.search(f"sources.name:{s}", rows=0)["total"] == 0
-        }
+        missing_blocklists = blocklist_sources - set(
+            self.datastore.badlist.facet(
+                "sources.name",
+                "sources.type:external",
+                size=len(self._service.update_config.sources),
+            ).keys()
+        )
 
         if missing_blocklists != blocklist_sources:
             # We have at least one blocklist source to work with for the time being
@@ -319,46 +321,60 @@ class BadlistUpdateServer(ServiceUpdater):
                         blocklist_data = json.load(fp)
                         if isinstance(blocklist_data, list):
                             for data in blocklist_data:
-                                json_dump = json.dumps(data)
-                                if any(t in json_dump for t in ignore_terms):
-                                    # Skip block
-                                    continue
-                                references = (
-                                    []
-                                    if not source_cfg.get("reference")
-                                    else [data.get(source_cfg.get("reference"))]
-                                )
-                                malware_family = sanitize_data(
-                                    data.get(source_cfg.get("malware_family")),
-                                    type="malware_family",
-                                )
+                                if isinstance(data, dict):
+                                    # Structured data
+                                    json_dump = json.dumps(data)
+                                    if any(t in json_dump for t in ignore_terms):
+                                        # Skip block
+                                        continue
+                                    references = (
+                                        []
+                                        if not source_cfg.get("reference")
+                                        else [data.get(source_cfg.get("reference"))]
+                                    )
+                                    malware_family = sanitize_data(
+                                        data.get(source_cfg.get("malware_family")),
+                                        type="malware_family",
+                                    )
 
-                                # Get attribution
-                                attribution = sanitize_data(
-                                    data.get(source_cfg.get("attribution")),
-                                    type="attribution",
-                                )
+                                    # Get attribution
+                                    attribution = sanitize_data(
+                                        data.get(source_cfg.get("attribution")),
+                                        type="attribution",
+                                    )
 
-                                campaign = sanitize_data(
-                                    data.get(source_cfg.get("campaign")),
-                                    type="campaign",
-                                    validate=False,
-                                )
+                                    campaign = sanitize_data(
+                                        data.get(source_cfg.get("campaign")),
+                                        type="campaign",
+                                        validate=False,
+                                    )
 
-                                for ioc_type in NETWORK_IOC_TYPES + FILEHASH_TYPES:
-                                    ioc_value = data.get(source_cfg.get(ioc_type))
-                                    if ioc_value:
-                                        update_blocklist(
-                                            ioc_type,
-                                            ioc_value,
-                                            "tag"
-                                            if ioc_type in NETWORK_IOC_TYPES
-                                            else "file",
-                                            malware_family,
-                                            attribution,
-                                            campaign,
-                                            references,
-                                        )
+                                    for ioc_type in NETWORK_IOC_TYPES + FILEHASH_TYPES:
+                                        ioc_value = data.get(source_cfg.get(ioc_type))
+                                        if ioc_value:
+                                            update_blocklist(
+                                                ioc_type,
+                                                ioc_value,
+                                                "tag"
+                                                if ioc_type in NETWORK_IOC_TYPES
+                                                else "file",
+                                                malware_family,
+                                                attribution,
+                                                campaign,
+                                                references,
+                                            )
+                                elif isinstance(data, str):
+                                    # Simple list of strings
+                                    for ioc_type in NETWORK_IOC_TYPES + FILEHASH_TYPES:
+                                        if IOC_CHECK[ioc_type](data):
+                                            update_blocklist(
+                                                ioc_type,
+                                                data,
+                                                "tag"
+                                                if ioc_type in NETWORK_IOC_TYPES
+                                                else "file",
+                                            )
+
             if blocklist_batch:
                 self.client.badlist.add_update_many(blocklist_batch)
 
