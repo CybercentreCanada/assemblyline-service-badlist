@@ -290,13 +290,14 @@ update_config:
       configuration:
         type: blocklist
         format: hosts
-    - name: ut_capitole
-      uri: https://dsi.ut-capitole.fr/blacklists/download/malware.tar.gz
-      pattern: .*domains$
-      configuration:
-        type: blocklist
-        format: csv
-        domain: 0
+    # TODO: Pending https://github.com/CybercentreCanada/assemblyline-v4-service/pull/825
+    # - name: ut_capitole
+    #   uri: https://dsi.ut-capitole.fr/blacklists/download/malware.tar.gz
+    #   pattern: .*domains$
+    #   configuration:
+    #     type: blocklist
+    #     format: csv
+    #     domain: 0
     - name: durablenapkin
       uri: https://raw.githubusercontent.com/durablenapkin/scamblocklist/master/hosts.txt
       pattern: .*hosts\.txt
