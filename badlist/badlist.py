@@ -1,7 +1,7 @@
 from assemblyline.common import forge
 from assemblyline.common.isotime import epoch_to_iso, now
 from assemblyline.common.net import is_valid_ip
-from assemblyline_v4_service.common.base import ServiceBase
+from assemblyline_v4_service.common.base import ServiceBase, SERVICE_READY_PATH
 from assemblyline_v4_service.common.result import (
     Heuristic,
     Result,
@@ -38,7 +38,8 @@ class Badlist(ServiceBase):
 
     # Utilizes the Badlist API, doesn't need to download files from updater
     def _download_rules(self):
-        pass
+        with open(SERVICE_READY_PATH, 'w'):
+            pass
 
     def execute(self, request):
         result = Result()
