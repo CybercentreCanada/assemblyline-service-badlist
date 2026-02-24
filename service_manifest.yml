@@ -217,17 +217,6 @@ update_config:
         domain: 0
         uri: 0
         sha256: 0
-    - name: kavat
-      uri: https://github.com/kavat/anubi-signatures.git
-      pattern: .*\/(fqdn|hash|ips)\/.+
-      configuration:
-        type: blocklist
-        format: csv
-        delimiter: ":"
-        ip: 0
-        domain: 0
-        sha256: 0
-        malware_family: 1
     - name: CERT.PL
       uri: https://hole.cert.pl/domains/v2/domains.txt
       pattern: .*domains\.txt
@@ -311,16 +300,6 @@ update_config:
         type: blocklist
         format: csv
         domain: 0
-    - name: Infinitum_IT
-      uri: https://github.com/Infinitum-IT/IOAs.git
-      pattern: .*\.txt
-      configuration:
-        type: blocklist
-        format: csv
-        domain: 0
-        ip: 0
-        sha256: 0
-        uri: 0
     - name: jarelllama
       uri: https://github.com/jarelllama/Blocklist-Sources.git
       pattern: .*(malwareurl|scamscavenger)\.txt
@@ -381,3 +360,4 @@ update_config:
 
   update_interval_seconds: 900 # Every 15 minutes
   wait_for_update: false
+
