@@ -101,7 +101,7 @@ class Badlist(ServiceBase):
                 # Add the bad file section to the results
                 result.add_section(bad_file_section)
 
-        # Add the uri file type data as potential tags to check
+        # Initalize variable based on request tags
         tags = {tag_type: list(values) for tag_type, values in request.task.tags.items()}
 
         # Cache the enabled lookups for network tags to avoid checking config repeatedly in the loop
@@ -122,6 +122,7 @@ class Badlist(ServiceBase):
                 tags.pop(f"network.static.{net_type}", None)
                 tags.pop(f"network.dynamic.{net_type}", None)
 
+        # Add the uri file type data as potential tags to check
         if request.file_type.startswith("uri/") and request.task.fileinfo.uri_info:
             if enabled_network_lookups["uri"]:
                 tags["network.static.uri"].append(request.task.fileinfo.uri_info.uri)
