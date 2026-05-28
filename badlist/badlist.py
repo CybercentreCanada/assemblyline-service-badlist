@@ -102,35 +102,48 @@ class Badlist(ServiceBase):
                 result.add_section(bad_file_section)
 
         # Add the uri file type data as potential tags to check
-        tags = request.task.tags
-        for net_type in ["ip", "domain", "uri"]:
-            tags.setdefault(f"network.static.{net_type}", [])
-            tags.setdefault(f"network.dynamic.{net_type}", [])
+        tags = {tag_type: list(values) for tag_type, values in request.task.tags.items()}
+        enabled_network_lookups = {
+            "ip": self.config.get("lookup_ip", False),
+            "domain": self.config.get("lookup_domain", False),
+            "uri": self.config.get("lookup_url", False),
+        }
+
+        for net_type, enabled in enabled_network_lookups.items():
+            if enabled:
+                tags.setdefault(f"network.static.{net_type}", [])
+                tags.setdefault(f"network.dynamic.{net_type}", [])
+            else:
+                tags.pop(f"network.static.{net_type}", None)
+                tags.pop(f"network.dynamic.{net_type}", None)
         if request.file_type.startswith("uri/") and request.task.fileinfo.uri_info:
-            tags["network.static.uri"].append(request.task.fileinfo.uri_info.uri)
+            if enabled_network_lookups["uri"]:
+                tags["network.static.uri"].append(request.task.fileinfo.uri_info.uri)
 
             if is_valid_ip(request.task.fileinfo.uri_info.hostname):
                 net_type = "ip"
             else:
                 net_type = "domain"
 
-            tags[f"network.static.{net_type}"].append(
-                request.task.fileinfo.uri_info.hostname
-            )
+            if enabled_network_lookups[net_type]:
+                tags[f"network.static.{net_type}"].append(
+                    request.task.fileinfo.uri_info.hostname
+                )
 
         # Filter out email domains from network domains before checking blocklist for hits
-        email_domains = set(
-            [x.split("@", 1)[1] for x in tags.get("network.email.address", [])]
-        )
-        tags["network.static.domain"] = list(
-            set(tags["network.static.domain"]) - email_domains
-        )
-        tags["network.dynamic.domain"] = list(
-            set(tags["network.dynamic.domain"]) - email_domains
-        )
+        if enabled_network_lookups["domain"]:
+            email_domains = set(
+                [x.split("@", 1)[1] for x in tags.get("network.email.address", [])]
+            )
+            tags["network.static.domain"] = list(
+                set(tags["network.static.domain"]) - email_domains
+            )
+            tags["network.dynamic.domain"] = list(
+                set(tags["network.dynamic.domain"]) - email_domains
+            )
 
         # Check the list of tags as a batch
-        badlisted_tags = self.api_interface.lookup_badlist_tags(request.task.tags)
+        badlisted_tags = self.api_interface.lookup_badlist_tags(tags)
         for badlisted in badlisted_tags:
             if (
                 badlisted
