@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "RunServiceOnce Badlist",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "assemblyline_v4_service.dev.run_service_once",
             "cwd": "${workspaceFolder}",
@@ -19,7 +19,7 @@
         },
         {
             "name": "[Service] Badlist - Privileged",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "assemblyline_v4_service.run_privileged_service",
             "env": {
@@ -34,7 +34,7 @@
         },
         {
             "name": "RunUpdater",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "badlist.update_server",
             "cwd": "${workspaceFolder}",
