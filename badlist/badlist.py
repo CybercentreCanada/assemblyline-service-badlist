@@ -101,111 +101,132 @@ class Badlist(ServiceBase):
                 # Add the bad file section to the results
                 result.add_section(bad_file_section)
 
+        # Initalize variable based on request tags
+        tags = {tag_type: list(values) for tag_type, values in request.task.tags.items()}
+
+        # Cache the enabled lookups for network tags to avoid checking config repeatedly in the loop
+        enabled_network_lookups = {
+            "ip": self.config.get("lookup_ip", False),
+            "domain": self.config.get("lookup_domain", False),
+            "uri": self.config.get("lookup_url", False),
+        }
+
+        # Iterate over the network lookup configuration to initialize tag lists
+        for net_type, enabled in enabled_network_lookups.items():
+            if enabled:
+                # Initialize the tag lists if they don't exist and are enabled for lookup
+                tags.setdefault(f"network.static.{net_type}", [])
+                tags.setdefault(f"network.dynamic.{net_type}", [])
+            else:
+                # If the lookup is not enabled, remove any tags of that type to avoid sending them in the lookup
+                tags.pop(f"network.static.{net_type}", None)
+                tags.pop(f"network.dynamic.{net_type}", None)
+
         # Add the uri file type data as potential tags to check
-        tags = request.task.tags
-        for net_type in ["ip", "domain", "uri"]:
-            tags.setdefault(f"network.static.{net_type}", [])
-            tags.setdefault(f"network.dynamic.{net_type}", [])
         if request.file_type.startswith("uri/") and request.task.fileinfo.uri_info:
-            tags["network.static.uri"].append(request.task.fileinfo.uri_info.uri)
+            if enabled_network_lookups["uri"]:
+                tags["network.static.uri"].append(request.task.fileinfo.uri_info.uri)
 
             if is_valid_ip(request.task.fileinfo.uri_info.hostname):
                 net_type = "ip"
             else:
                 net_type = "domain"
 
-            tags[f"network.static.{net_type}"].append(
-                request.task.fileinfo.uri_info.hostname
-            )
-
-        # Filter out email domains from network domains before checking blocklist for hits
-        email_domains = set(
-            [x.split("@", 1)[1] for x in tags.get("network.email.address", [])]
-        )
-        tags["network.static.domain"] = list(
-            set(tags["network.static.domain"]) - email_domains
-        )
-        tags["network.dynamic.domain"] = list(
-            set(tags["network.dynamic.domain"]) - email_domains
-        )
-
-        # Check the list of tags as a batch
-        badlisted_tags = self.api_interface.lookup_badlist_tags(request.task.tags)
-        for badlisted in badlisted_tags:
-            if (
-                badlisted
-                and badlisted["enabled"]
-                and badlisted["type"] == "tag"
-                and badlisted["tag"]["value"] in tags[badlisted["tag"]["type"]]
-            ):
-                # Create the bad section
-                bad_ioc_section = ResultSection(badlisted["tag"]["value"])
-
-                # Create a metadata body
-                metadata_body = {
-                    "IOC Type": badlisted["tag"]["type"],
-                    "IOC Value": badlisted["tag"]["value"],
-                    "First added": badlisted["added"],
-                    "Last updated": badlisted["updated"],
-                }
-
-                # Add attribution tags
-                attributions = badlisted.get("attribution", {}) or {}
-                for tag_type, values in attributions.items():
-                    if values:
-                        for v in values:
-                            bad_ioc_section.add_tag(f"attribution.{tag_type}", v)
-                        # Add any values that will be tagged in the metadata body
-                        metadata_body[tag_type] = values
-
-                # Add metadata section to parent
-                bad_ioc_section.add_subsection(
-                    ResultOrderedKeyValueSection(
-                        title_text="Metadata",
-                        body=metadata_body,
-                        classification=badlisted.get(
-                            "classification", classification.UNRESTRICTED
-                        ),
-                        tags={badlisted["tag"]["type"]: [badlisted["tag"]["value"]]},
-                    )
+            if enabled_network_lookups[net_type]:
+                tags[f"network.static.{net_type}"].append(
+                    request.task.fileinfo.uri_info.hostname
                 )
 
-                # Create a sub-section per source
-                for source in badlisted["sources"]:
-                    signatures = {}
-                    if source["type"] == "user":
-                        msg = f"User '{source['name']}' deemed \"{badlisted['tag']['value']}\" as bad"
-                    else:
-                        signatures[source["name"]] = 1
-                        msg = f"External source '{source['name']}' deems \"{badlisted['tag']['value']}\" as bad"
+        # Filter out email domains from network domains before checking blocklist for hits
+        if enabled_network_lookups["domain"]:
+            email_domains = set(
+                [x.split("@", 1)[1] for x in tags.get("network.email.address", [])]
+            )
+            tags["network.static.domain"] = list(
+                set(tags["network.static.domain"]) - email_domains
+            )
+            tags["network.dynamic.domain"] = list(
+                set(tags["network.dynamic.domain"]) - email_domains
+            )
 
-                    source_classfication = source.pop(
-                        "classification", classification.UNRESTRICTED
-                    )
+        # Check the list of tags as a batch
+        if tags:
+            badlisted_tags = self.api_interface.lookup_badlist_tags(tags)
+            for badlisted in badlisted_tags:
+                if (
+                    badlisted
+                    and badlisted["enabled"]
+                    and badlisted["type"] == "tag"
+                    and badlisted["tag"]["value"] in tags[badlisted["tag"]["type"]]
+                ):
+                    # Create the bad section
+                    bad_ioc_section = ResultSection(badlisted["tag"]["value"])
+
+                    # Create a metadata body
+                    metadata_body = {
+                        "IOC Type": badlisted["tag"]["type"],
+                        "IOC Value": badlisted["tag"]["value"],
+                        "First added": badlisted["added"],
+                        "Last updated": badlisted["updated"],
+                    }
+
+                    # Add attribution tags
+                    attributions = badlisted.get("attribution", {}) or {}
+                    for tag_type, values in attributions.items():
+                        if values:
+                            for v in values:
+                                bad_ioc_section.add_tag(f"attribution.{tag_type}", v)
+                            # Add any values that will be tagged in the metadata body
+                            metadata_body[tag_type] = values
+
+                    # Add metadata section to parent
                     bad_ioc_section.add_subsection(
                         ResultOrderedKeyValueSection(
-                            msg,
-                            body=source,
-                            classification=source_classfication,
-                            heuristic=Heuristic(
-                                2,
-                                score_map=self.source_score_override,
-                                signatures=signatures,
+                            title_text="Metadata",
+                            body=metadata_body,
+                            classification=badlisted.get(
+                                "classification", classification.UNRESTRICTED
                             ),
-                            tags={
-                                badlisted["tag"]["type"]: [badlisted["tag"]["value"]]
-                            },
+                            tags={badlisted["tag"]["type"]: [badlisted["tag"]["value"]]},
                         )
                     )
 
-                # Add the bad IOC section to the results
-                result.add_section(bad_ioc_section)
+                    # Create a sub-section per source
+                    for source in badlisted["sources"]:
+                        signatures = {}
+                        if source["type"] == "user":
+                            msg = f"User '{source['name']}' deemed \"{badlisted['tag']['value']}\" as bad"
+                        else:
+                            signatures[source["name"]] = 1
+                            msg = f"External source '{source['name']}' deems \"{badlisted['tag']['value']}\" as bad"
 
-                # If this is a URI and we have confidence that it is bad, extract as an extracted file
-                if badlisted["tag"]["type"].endswith("uri"):
-                    request.add_extracted_uri(
-                        "URI found in badlist", badlisted["tag"]["value"]
-                    )
+                        source_classfication = source.pop(
+                            "classification", classification.UNRESTRICTED
+                        )
+                        bad_ioc_section.add_subsection(
+                            ResultOrderedKeyValueSection(
+                                msg,
+                                body=source,
+                                classification=source_classfication,
+                                heuristic=Heuristic(
+                                    2,
+                                    score_map=self.source_score_override,
+                                    signatures=signatures,
+                                ),
+                                tags={
+                                    badlisted["tag"]["type"]: [badlisted["tag"]["value"]]
+                                },
+                            )
+                        )
+
+                    # Add the bad IOC section to the results
+                    result.add_section(bad_ioc_section)
+
+                    # If this is a URI and we have confidence that it is bad, extract as an extracted file
+                    if badlisted["tag"]["type"].endswith("uri"):
+                        request.add_extracted_uri(
+                            "URI found in badlist", badlisted["tag"]["value"]
+                        )
 
         # Check for similarity hashes ssdeep
         for hash_type in similar_hash_types:
