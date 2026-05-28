@@ -102,4 +102,5 @@ def test_filtered_tags_are_used_for_lookup():
     assert sorted(service._api.tags["network.static.domain"]) == [
         "evil.example"
     ]
+    assert "example.com" not in service._api.tags["network.static.domain"]
     assert service._api.tags["network.dynamic.domain"] == []
