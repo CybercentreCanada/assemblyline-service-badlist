@@ -41,7 +41,19 @@ def service():
 
 @pytest.fixture
 def service_request():
-    return ServiceRequest(Task(random_model_obj(ServiceTask)))
+    task = Task(random_model_obj(ServiceTask))
+
+    # Overwrite the task tags with specific network tags for testing
+    task.tags = {
+        "network.static.ip": ["0.0.0.0"],
+        "network.dynamic.ip": ["0.0.0.0"],
+        "network.static.domain": ["example.com"],
+        "network.dynamic.domain": ["example.com"],
+        "network.static.uri": ["http://example.com"],
+        "network.dynamic.uri": ["http://example.com"],
+    }
+
+    return ServiceRequest(task)
 
 filelookup_matrix = list(itertools.product(["md5", "sha1", "sha256"],[True, False]))
 @pytest.mark.parametrize("hash_type, lookup", filelookup_matrix)
@@ -86,20 +98,6 @@ def test_lookup_network_tags(service, service_request, network_type, lookup):
 
     service.config = {
         f"lookup_{network_type}": lookup,
-    }
-
-    if network_type == "ip":
-        network_value = "0.0.0.0"
-    elif network_type == "domain":
-        network_value = "example.com"
-    elif network_type == "url":
-        network_type = "uri"
-        network_value = "http://example.com"
-
-    # Overwrite the task tags with specific network tags for testing
-    service_request.task.tags = {
-        f"network.static.{network_type}": [network_value],
-        f"network.dynamic.{network_type}": [network_value],
     }
 
     service.execute(service_request)
