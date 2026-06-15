@@ -61,10 +61,10 @@ def service_request():
     return ServiceRequest(task)
 
 
-filelookup_matrix = list(itertools.product(["md5", "sha1", "sha256"], [True, False]))
+FILELOOKUP_MATRIX = list(itertools.product(["md5", "sha1", "sha256"], [True, False]))
 
 
-@pytest.mark.parametrize("hash_type, lookup", filelookup_matrix)
+@pytest.mark.parametrize("hash_type, lookup", FILELOOKUP_MATRIX)
 def test_filehash_lookup(service, service_request, hash_type, lookup):
     service.config = {
         f"lookup_{hash_type}": lookup,
