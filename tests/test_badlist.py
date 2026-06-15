@@ -175,7 +175,10 @@ def test_extract_uri_param(service, service_request, extract_uri):
     service.execute(service_request)
 
     # Assert that a lookup was performed for the URI tag
-    assert ("lookup_badlist_tags", {"network.static.uri": [badlisted_uri]}) in service.api_interface.calls
+    assert (
+        "lookup_badlist_tags",
+        {"network.static.uri": [badlisted_uri], "network.dynamic.uri": []},
+    ) in service.api_interface.calls
 
     # Depending on the submission parameter, we should get an extracted URI task or none at all
     assert bool(service_request.task.extracted) == extract_uri
