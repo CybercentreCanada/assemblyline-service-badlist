@@ -223,7 +223,7 @@ class Badlist(ServiceBase):
                     result.add_section(bad_ioc_section)
 
                     # If this is a URI and we have confidence that it is bad, extract as an extracted file
-                    if badlisted["tag"]["type"].endswith("uri"):
+                    if badlisted["tag"]["type"].endswith("uri") and request.get_param("extract_uri"):
                         request.add_extracted_uri(
                             "URI found in badlist", badlisted["tag"]["value"]
                         )

@@ -39,6 +39,12 @@ heuristics:
     filetype: "*"
     description: This file is similar to a file found in the list of know bad files
 
+submission_params:
+  - default: true
+    name: extract_uri
+    type: bool
+    value: true
+
 config:
   cache_timeout_seconds: 1800
   lookup_md5: false

@@ -115,6 +115,49 @@ def test_lookup_network_tags(service, service_request, network_type, lookup):
         assert service.api_interface.calls == []
 
 
+@pytest.mark.parametrize("extract_uri", [True, False], ids=["extract", "no_extract"])
+def test_extract_uri_param(service, service_request, extract_uri):
+    badlisted_uri = "http://evil.example.com"
+
+    # Make the mock API return a badlisted URI tag
+    def lookup_badlist_tags(tags):
+        service.api_interface.calls.append(("lookup_badlist_tags", tags))
+        return [
+            {
+                "enabled": True,
+                "type": "tag",
+                "tag": {"type": "network.static.uri", "value": badlisted_uri},
+                "added": "2024-01-01T00:00:00Z",
+                "updated": "2024-01-01T00:00:00Z",
+                "sources": [
+                    {
+                        "type": "external",
+                        "name": "test_source",
+                        "reason": ["test reason"],
+                        "classification": None,
+                    }
+                ],
+                "attribution": {},
+                "classification": None,
+            }
+        ]
+
+    service.api_interface.lookup_badlist_tags = lookup_badlist_tags
+
+    service_request.task.tags = {
+        "network.static.uri": [badlisted_uri],
+    }
+    service_request.task.service_config["extract_uri"] = extract_uri
+    service.config = {"lookup_url": True}
+
+    extracted_uris = []
+    service_request.add_extracted_uri = lambda desc, uri, **kw: extracted_uris.append(uri)
+
+    service.execute(service_request)
+
+    assert bool(extracted_uris) == extract_uri
+
+
 def test_email_domain_filter(service, service_request):
     service.config = {
         "lookup_domain": True,
