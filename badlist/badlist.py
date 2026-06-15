@@ -1,7 +1,7 @@
 from assemblyline.common import forge
 from assemblyline.common.isotime import epoch_to_iso, now
 from assemblyline.common.net import is_valid_ip
-from assemblyline_v4_service.common.base import ServiceBase, SERVICE_READY_PATH
+from assemblyline_v4_service.common.base import SERVICE_READY_PATH, ServiceBase
 from assemblyline_v4_service.common.result import (
     Heuristic,
     Result,
@@ -38,7 +38,7 @@ class Badlist(ServiceBase):
 
     # Utilizes the Badlist API, doesn't need to download files from updater
     def _download_rules(self):
-        with open(SERVICE_READY_PATH, 'w'):
+        with open(SERVICE_READY_PATH, "w"):
             pass
 
     def execute(self, request):
@@ -66,9 +66,7 @@ class Badlist(ServiceBase):
                 bad_file_section = ResultSection(
                     f"{qhash} hash was found in the list of bad files",
                     heuristic=Heuristic(1),
-                    classification=data.get(
-                        "classification", classification.UNRESTRICTED
-                    ),
+                    classification=data.get("classification", classification.UNRESTRICTED),
                 )
 
                 # Add attribution tags
@@ -92,9 +90,7 @@ class Badlist(ServiceBase):
                         ResultSection(
                             msg,
                             body="\n".join(source["reason"]),
-                            classification=source.get(
-                                "classification", classification.UNRESTRICTED
-                            ),
+                            classification=source.get("classification", classification.UNRESTRICTED),
                         )
                     )
 
@@ -133,21 +129,13 @@ class Badlist(ServiceBase):
                 net_type = "domain"
 
             if enabled_network_lookups[net_type]:
-                tags[f"network.static.{net_type}"].append(
-                    request.task.fileinfo.uri_info.hostname
-                )
+                tags[f"network.static.{net_type}"].append(request.task.fileinfo.uri_info.hostname)
 
         # Filter out email domains from network domains before checking blocklist for hits
         if enabled_network_lookups["domain"]:
-            email_domains = set(
-                [x.split("@", 1)[1] for x in tags.get("network.email.address", [])]
-            )
-            tags["network.static.domain"] = list(
-                set(tags["network.static.domain"]) - email_domains
-            )
-            tags["network.dynamic.domain"] = list(
-                set(tags["network.dynamic.domain"]) - email_domains
-            )
+            email_domains = set([x.split("@", 1)[1] for x in tags.get("network.email.address", [])])
+            tags["network.static.domain"] = list(set(tags["network.static.domain"]) - email_domains)
+            tags["network.dynamic.domain"] = list(set(tags["network.dynamic.domain"]) - email_domains)
 
         # Check the list of tags as a batch
         if tags:
@@ -184,9 +172,7 @@ class Badlist(ServiceBase):
                         ResultOrderedKeyValueSection(
                             title_text="Metadata",
                             body=metadata_body,
-                            classification=badlisted.get(
-                                "classification", classification.UNRESTRICTED
-                            ),
+                            classification=badlisted.get("classification", classification.UNRESTRICTED),
                             tags={badlisted["tag"]["type"]: [badlisted["tag"]["value"]]},
                         )
                     )
@@ -200,9 +186,7 @@ class Badlist(ServiceBase):
                             signatures[source["name"]] = 1
                             msg = f"External source '{source['name']}' deems \"{badlisted['tag']['value']}\" as bad"
 
-                        source_classfication = source.pop(
-                            "classification", classification.UNRESTRICTED
-                        )
+                        source_classfication = source.pop("classification", classification.UNRESTRICTED)
                         bad_ioc_section.add_subsection(
                             ResultOrderedKeyValueSection(
                                 msg,
@@ -213,26 +197,20 @@ class Badlist(ServiceBase):
                                     score_map=self.source_score_override,
                                     signatures=signatures,
                                 ),
-                                tags={
-                                    badlisted["tag"]["type"]: [badlisted["tag"]["value"]]
-                                },
+                                tags={badlisted["tag"]["type"]: [badlisted["tag"]["value"]]},
                             )
                         )
 
                     # Add the bad IOC section to the results
                     result.add_section(bad_ioc_section)
 
-                    # If this is a URI and we have confidence that it is bad, extract as an extracted file
+                    # If we have confidence that the URI is bad, then extract if the user has requested to
                     if badlisted["tag"]["type"].endswith("uri") and request.get_param("extract_uri"):
-                        request.add_extracted_uri(
-                            "URI found in badlist", badlisted["tag"]["value"]
-                        )
+                        request.add_extracted_uri("URI found in badlist", badlisted["tag"]["value"])
 
         # Check for similarity hashes ssdeep
         for hash_type in similar_hash_types:
-            similar_hashes = self.similar_api_map[hash_type](
-                request.task.fileinfo[hash_type]
-            )
+            similar_hashes = self.similar_api_map[hash_type](request.task.fileinfo[hash_type])
             for similar in similar_hashes:
                 if (
                     similar
@@ -244,23 +222,13 @@ class Badlist(ServiceBase):
                     similar_section = ResultOrderedKeyValueSection(
                         f"{hash_type.upper()} similarity match: A similar file in the system matches this file",
                         heuristic=Heuristic(3),
-                        classification=similar.get(
-                            "classification", classification.UNRESTRICTED
-                        ),
+                        classification=similar.get("classification", classification.UNRESTRICTED),
                     )
                     similar_section.add_item("md5", similar["hashes"].get("md5", None))
-                    similar_section.add_item(
-                        "sha1", similar["hashes"].get("sha1", None)
-                    )
-                    similar_section.add_item(
-                        "sha256", similar["hashes"].get("sha256", None)
-                    )
-                    similar_section.add_item(
-                        "ssdeep", similar["hashes"].get("ssdeep", None)
-                    )
-                    similar_section.add_item(
-                        "tlsh", similar["hashes"].get("tlsh", None)
-                    )
+                    similar_section.add_item("sha1", similar["hashes"].get("sha1", None))
+                    similar_section.add_item("sha256", similar["hashes"].get("sha256", None))
+                    similar_section.add_item("ssdeep", similar["hashes"].get("ssdeep", None))
+                    similar_section.add_item("tlsh", similar["hashes"].get("tlsh", None))
                     similar_section.add_item("size", similar["file"].get("size", None))
                     similar_section.add_item("type", similar["file"].get("type", None))
 
@@ -285,9 +253,7 @@ class Badlist(ServiceBase):
                             ResultSection(
                                 msg,
                                 body="\n".join(source["reason"]),
-                                classification=similar.get(
-                                    "classification", classification.UNRESTRICTED
-                                ),
+                                classification=similar.get("classification", classification.UNRESTRICTED),
                             )
                         )
 
