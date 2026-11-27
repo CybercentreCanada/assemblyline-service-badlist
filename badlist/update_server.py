@@ -16,7 +16,7 @@ from assemblyline.odm.base import (
     SSDEEP_REGEX,
     TLSH_REGEX,
 )
-from assemblyline_v4_service.updater.updater import ServiceUpdater
+from assemblyline_v4_service.updater.updater import SOURCE_STATUS_KEY, ServiceUpdater
 
 IOC_CHECK = {
     "ip": re.compile(IP_ONLY_REGEX).match,
@@ -93,10 +93,21 @@ class BadlistUpdateServer(ServiceUpdater):
             # We have at least one blocklist source to work with for the time being
             success = True
 
+        # Disabled sources are never fetched, so re-tasking them would loop without producing updates
+        enabled_sources = {_s.name for _s in self._service.update_config.sources if _s.enabled}
+        missing_blocklists &= enabled_sources
+
         # Trigger an update for the blocklists that are missing
-        if missing_blocklists:
-            [self.update_queue.put(source) for source in missing_blocklists]
-            self.trigger_update()
+        if missing_blocklists and not self.source_update_flag.is_set():
+            retasked = False
+            for source in missing_blocklists:
+                source_status = self.update_data_hash.get(f"{source}.{SOURCE_STATUS_KEY}")
+                # Leave sources known to have a critical error to their regular schedule
+                if not source_status or source_status["state"] != "ERROR":
+                    self.update_queue.put(source)
+                    retasked = True
+            if retasked:
+                self.trigger_update()
 
         return success
 
